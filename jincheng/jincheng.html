@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>晋城一隅</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome图标 -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <script>
+        // 配置Tailwind自定义颜色
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1E40AF', // 石家庄主色调-深蓝色
+                        secondary: '#10B981',
+                        accent: '#F59E0B',
+                        dark: '#1F2937',
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .map-container {
+                background-image: url('jincheng.jpg'); /* 可替换为裕华区实际地图 */
+                background-size: cover;
+                background-position: center;
+		background-repeat: no-repeat;
+                position: relative;
+            }
+            .location-marker {
+                transition: all 0.3s ease;
+            }
+            .location-marker:hover {
+                transform: scale(1.2);
+            }
+            .info-box {
+                transform-origin: top center;
+                animation: fadeIn 0.3s ease forwards;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: scale(0.9); }
+                to { opacity: 1; transform: scale(1); }
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <header class="bg-primary text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold flex items-center">
+                <i class="fa fa-map-marker mr-3"></i>晋城一隅
+            </h1>
+            <p class="text-blue-100 mt-1">点击地图上的标记查看地点详情</p>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+            <!-- 地图控制区 -->
+            <div class="p-4 bg-gray-50 border-b flex flex-wrap gap-2 justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <button id="zoomIn" class="bg-primary hover:bg-primary/90 text-white p-2 rounded-full transition-all">
+                        <i class="fa fa-search-plus"></i>
+                    </button>
+                    <button id="zoomOut" class="bg-primary hover:bg-primary/90 text-white p-2 rounded-full transition-all">
+                        <i class="fa fa-search-minus"></i>
+                    </button>
+                    <button id="resetMap" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1.5 rounded-md transition-all text-sm">
+                        <i class="fa fa-refresh mr-1"></i>重置视图
+                    </button>
+                </div>
+                <div class="text-sm text-gray-600">
+                    <span class="font-medium">提示：</span>点击蓝色标记查看裕华区地点介绍
+                </div>
+            </div>
+            
+            <!-- 地图容器 -->
+            <div id="map" class="map-container w-full h-[700px] cursor-move">
+                <!-- 地点标记 - 会通过JS动态添加 -->
+            </div>
+            
+            <!-- 信息窗口 - 默认隐藏 -->
+            <div id="infoBox" class="info-box hidden absolute bg-white rounded-lg shadow-xl p-4 max-w-md z-50 border border-gray-200">
+                <div class="flex justify-between items-start mb-3">
+                    <h3 id="locationTitle" class="text-xl font-bold text-dark"></h3>
+                    <button id="closeInfo" class="text-gray-500 hover:text-gray-700 transition-colors">
+                        <i class="fa fa-times text-lg"></i>
+                    </button>
+                </div>
+                
+                <div id="locationContent" class="space-y-4">
+                    <!-- 内容会通过JS动态填充 -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- 地点列表 -->
+        <div class="mt-8 bg-white rounded-xl shadow-md p-6">
+            <h2 class="text-xl font-bold text-dark mb-4 flex items-center">
+                <i class="fa fa-list-ul mr-2 text-primary"></i>晋城地点列表
+            </h2>
+            <div id="locationsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- 地点列表会通过JS动态生成 -->
+            </div>
+        </div>
+    </main>
+
+<!-- 图片预览模态框 -->
+<div id="imageModal" class="fixed inset-0 bg-black/90 flex items-center justify-center z-50 hidden">
+  <!-- 关闭按钮 -->
+  <button id="closeModal" class="absolute top-6 right-6 text-white text-3xl hover:text-gray-300 transition-colors">
+    <i class="fa fa-times"></i>
+  </button>
+  <!-- 左右切换按钮 -->
+  <button id="prevImage" class="absolute left-4 top-1/2 -translate-y-1/2 text-white text-4xl hover:text-gray-300 transition-colors">
+    <i class="fa fa-chevron-left"></i>
+  </button>
+  <button id="nextImage" class="absolute right-4 top-1/2 -translate-y-1/2 text-white text-4xl hover:text-gray-300 transition-colors">
+    <i class="fa fa-chevron-right"></i>
+  </button>
+  <!-- 大图显示区域 -->
+  <img id="modalImage" src="" alt="大图预览" class="max-w-[90%] max-h-[80vh] object-contain">
+  <!-- 图片描述 -->
+  <p id="modalImageDesc" class="absolute bottom-6 left-0 right-0 text-center text-white text-lg"></p>
+</div>
+
+    <footer class="bg-dark text-white mt-12 py-6">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy;  晋城一隅地图 | 晋城一隅主要地标导览</p>
+        </div>
+    </footer>
+
+    <script>
+        // 石家庄裕华区地点数据
+        const locations = [
+            {
+                id: 1,
+                name: "晋冀鲁豫野战军第十二纵队整军地",
+		description: "一、历史语境下的晋冀鲁豫野战军第十二纵队整军地\n晋冀鲁豫野战军第十二纵队，是解放战争时期华北野战军的重要组成部分。整军运动的地点，不仅是部队战斗力提升的见证地，更是革命精神和革命道德培育的发生地。整军强调政治建军、思想建军，以确保部队在军事斗争中始终保持坚定的革命信念和人民立场。\n二、整军地所承载的革命道德内涵\n1. 坚定信念与忠诚使命 整军地教育士兵树立“全心全意为人民服务”的宗旨，强调个人牺牲与集体利益、国家解放相统一。革命道德的核心是对共产主义理想的坚守和对党绝对的忠诚。\n2. 群众观念与奉献精神 整军地不仅整顿军纪，更要求部队密切联系群众，尊重群众利益。革命道德体现在“吃苦在前，享受在后”的自觉奉献，以及把人民安危置于首位。\n3. 廉洁自律与严明纪律 整军运动中强调廉洁奉公，反对贪腐、浪费和特权。这种道德强调军队要成为人民信赖的队伍，而不是凌驾于人民之上的特殊群体。\n4. 团结协作与集体主义 整军地凝练出高度的战斗团结精神，个人荣誉服从集体需要。革命道德突出集体主义价值，体现为协同作战、互助互爱。\n三、当代的传承与转化\n1. 坚定理想信念 → 当代价值观教育 在新时代，革命理想转化为对中国特色社会主义道路的坚定信念。在国防教育、思想政治教育中，整军地精神成为培养青年使命感的重要资源。\n2. 群众路线 → 公共服务精神 军队联系群众的传统，在当代被转化为党政机关和企事业单位的“人民至上、服务为本”的价值追求。在公共治理中，体现为尊重民意、回应民生需求。\n3. 廉洁奉公 → 反腐倡廉建设 整军地的清正廉洁精神，转化为今天对干部作风、党风廉政建设的基本要求。在当代体现为制度化的监督、问责与廉洁文化建设。\n4. 集体主义 → 社会责任与团队精神 过去的集体主义精神，在当代延展为社会责任感与合作意识。在企业文化、社会组织及青年群体中，强调团队协作和担当奉献。\n5. 艰苦奋斗 → 创新驱动与绿色发展 革命年代的“艰苦奋斗”精神，今天更多转化为“自强不息”“务实创新”。在经济社会建设中，这种精神表现为敢于攻坚克难、勇于探索突破。",
+    position: { x: 80, y: 10 },
+                images: [
+     		 { src: "1.jpg", desc: "整军地历史场景1" },
+      		{ src: "2.jpg", desc: "整军地历史场景2" },
+		{ src: "3.jpg", desc: "整军地历史场景3" },
+		{ src: "4.jpg", desc: "整军地历史场景4" },
+      		{ src: "5.jpg", desc: "整军地历史场景5" }
+   		 ],
+                audio: "",
+                video: "1.mp4"
+            },
+            {
+                id: 2,
+                name: "晋城市中级人民法院",
+                description:"一、在法治精神上的体现\n1.公平正义\n审判独立：晋城市中级人民法院依法独立行使审判权，不受行政机关、社会组织和个人干涉，保证案件裁判的公正性。\n司法公开：通过庭审直播、裁判文书上网等形式，增加审判透明度，让社会监督司法，维护司法公信力。\n均衡裁判：无论当事人身份、地位、财富高低，法院在裁判中坚持法律面前人人平等，避免出现“厚此薄彼”。\n2.权利保障\n程序正义：严格依照法律程序审理案件，保证当事人享有陈述权、辩护权、上诉权等基本权利。\n弱势群体保护：对涉及农民工讨薪、未成年人保护、老年人权益等案件予以优先处理，注重司法的人文关怀。\n律师辩护权：保障律师依法履行辩护、代理职能，充分发挥其在维护当事人合法权益中的作用。\n二、在法治实践上的体现\n1.完善司法机制\n建立案件质量评查机制和审判责任制，确保每个案件都能依法裁判、有人负责。推行繁简分流、轻重分离的审判机制，提高办案效率，让司法更贴近群众。\n2.司法公开与透明\n实行 “阳光司法”：通过晋城市中院官网、中国裁判文书网等平台，公开裁判文书与审判流程。举办公众开放日，让群众走进法院，增进对司法运行的理解。\n3.多元化纠纷解决机制\n与调解组织、仲裁机构、行政机关建立联动机制，实现诉讼与非诉讼有效衔接。推动“枫桥经验”在司法领域落地，强化诉前调解、司法确认等措施，减少群众诉累。\n开展“涉民生案件快审快结”专项行动，提高案件办理效率。在执行工作中强化“执行难”治理，利用信息化手段（如网络查控系统）保障胜诉当事人权益落地。\n三、社会层面的法治意义\n1.树立法治权威：通过依法裁判，晋城市中级人民法院彰显法律的最高效力，形成“遇事找法、办事依法”的社会氛围。\n2.推动社会公平：在民商事、行政、刑事等案件中，以公平正义为核心裁判价值，促进社会矛盾合理化解。\n3.培育法治信仰：通过公开透明的审判与权利保障，让群众切实感受到“公平正义就在身边”，从而增强全社会的法治信仰。\n3.社会主义核心价值观。",
+                position: { x: 75, y: 90 },
+                images: [
+     		 { src: "7.jpg", desc: "人民法院场景1" },
+      		{ src: "8.jpg", desc: "人民法院场景2" },
+		{ src: "9.jpg", desc: "人民法院场景3" }
+   		 ],
+                audio: "",
+                video: ""
+            },
+            {
+                id: 3,
+                name: "晋城市经济技术开发区",
+                description: "一、“富强”切入的核心解读\n1.产业升级体现富强动力\n开发区大力发展高新技术产业、新能源、新材料等战略性产业，从“煤炭一枝独大”走向“多元驱动”，展现经济强国的现代路径。这种产业升级就是“富强”的具象化，让群众看到国家富强不是抽象的愿景，而是工厂车间里轰鸣的机器、实验室里闪烁的仪器。\n2.创新驱动释放富强活力\n建立科技孵化器、研发中心，吸引高校科研成果转化，培育本土企业的创新能力。对公众而言，这种创新不仅体现在宏大的科技突破上，更在于日常生活的改变：新能源公交车、智慧城市应用、绿色环保产品。\n3.民生改善承载富强福祉\n开发区的发展直接带来就业机会，提升居民收入水平，改善公共服务设施。富强的本质不仅是GDP增长，而是让老百姓能在现代化工厂就业，孩子能享受更好的教育，家庭能享有绿色健康的生活环境。\n二、从理论到日常实践的转化路径\n1.政策口号 → 百姓获得感\n“高质量发展”不再停留在文件里，而是成为居民就业、收入、环境改善的切身体验。\n2.抽象概念 → 产业园区的具象化\n“富强”通过工厂、研发基地、物流中心等设施具象化，让人看到“国家强”就在身边。\n3.宏大叙事 → 生活中的变化\n核心价值观通过绿色出行、智能家居、数字化公共服务，成为百姓日常生活的现实便利。",
+                position: { x: 70, y: 65 },
+                images: [
+     		 { src: "10.jpg", desc: "经济技术开发区场景" }
+   		 ],
+                audio: "",
+                video: ""
+            },
+            {
+                id: 4,
+                name: "晋城市博物馆",
+                description: "一、晋城市博物馆的文明意义\n晋城市作为中华文明重要发源地之一，地处太行山南端，历史悠久，文物资源丰富。晋城市博物馆不仅是文物收藏和展示的场所，更是传承历史、培育文明、践行社会主义核心价值观的重要阵地。它通过展览叙事、文化传播和社会教育，把价值观融入日常公共生活，成为群众理解“文明”的生动课堂。\n二、从理论到实践的转化路径\n1.从抽象口号到具象符号\n文明价值观通过文物、展陈、场馆空间设计变得可触可感。\n2.从宏大叙事到日常体验\n大国文明通过儿童活动、研学实践进入家庭与校园，成为普通人的生活体验。\n3.从理念宣传到公共服务\n核心价值观不再只是宣传语，而是渗透在服务细节中：无障碍通道、志愿讲解、公众参与机制。\n4.从历史传承到现实责任\n文物保护教育与红色展览，让观众把对文明的尊重转化为对当下社会文明行为的自觉践行。",
+                position: { x: 65, y: 70 },
+                images: [
+     		 { src: "11.jpg", desc: "博物馆场景1" },
+      		 { src: "12.jpg", desc: "博物馆场景2" },
+		 { src: "13.jpg", desc: "博物馆场景3" },
+     		 { src: "14.jpg", desc: "博物馆场景4" },
+      		 { src: "15.jpg", desc: "博物馆场景5" },
+		 { src: "16.jpg", desc: "博物馆场景6" }
+   		 ],
+                audio: "",
+                video: ""
+            },
+            {
+                id: 5,
+                name: "玉皇庙",
+                description: "随着黑神话悟空的爆火，晋城市泽州县玉皇庙作为黑神话悟空的取景地，迎来了大批游客的同时也产生了许多不文明观赏的现象，例如翻跃栏杆与古建合影、抚摸古建、随地吐痰、公共场合吸烟等不文明现象，作为青年学子我们应当贡献一份力量。\n一、普法宣传：用法律意识护航文明旅游\n积极参与普法宣传活动，比如在景区、学校、社区开展“文明旅游与法律责任”主题宣讲，提醒游客在参观玉皇庙等文物古迹时要遵守《文物保护法》《治安管理处罚法》。倡导“知法、懂法、守法”，让每一位游客明白：不文明行为不仅是道德问题，也可能触及法律责任。\n二、志愿服务：用青春行动守护文化遗产\n组建“文明引导志愿队”，在玉皇庙等景区进行文明劝导，提醒游客禁止刻画涂鸦、乱扔垃圾等行为。参与环保志愿服务，组织定期清理景区垃圾，营造整洁优美的参观环境，用实际行动传递文明力量。\n三、文化传承：让传统文化焕发青春魅力\n借助“黑神话悟空”热度，结合《西游记》文化内涵，开展主题讲座、读书会或创意活动，把网络热点转化为弘扬传统文化的契机。在校园内推动“非遗进课堂”活动，学习地方民俗、戏曲、雕刻等，增强青年学生对家乡文化的认同感。\n四、建言献策：以青年智慧助力治理现代化\n通过社团、调研实践，针对景区管理中存在的问题形成调研报告，提出合理化建议，比如增设智能监控、完善游客信用记录、推动“文明积分制”等。借助新媒体平台发声，积极参与线上公共讨论，把青年声音传递到政策制定与社会治理的层面。",
+                position: { x: 15, y: 20 },
+                images: [
+     		 { src: "17.jpg", desc: "玉皇庙场景1" },
+      		 { src: "18.jpg", desc: "玉皇庙场景2" },
+		 { src: "19.jpg", desc: "玉皇庙场景3" },
+     		 { src: "20.jpg", desc: "玉皇庙场景4" }
+   		 ],
+                audio: "",
+                video: ""
+            },
+
+        ];
+
+        // DOM元素
+        const map = document.getElementById('map');
+        const infoBox = document.getElementById('infoBox');
+        const locationTitle = document.getElementById('locationTitle');
+        const locationContent = document.getElementById('locationContent');
+        const closeInfo = document.getElementById('closeInfo');
+        const zoomIn = document.getElementById('zoomIn');
+        const zoomOut = document.getElementById('zoomOut');
+        const resetMap = document.getElementById('resetMap');
+        const locationsList = document.getElementById('locationsList');
+
+        // 地图缩放比例
+        let scale = 1;
+        
+        // 初始化地图
+        function initMap() {
+            // 添加地点标记
+            locations.forEach(location => {
+                addMarker(location);
+            });
+            
+            // 生成地点列表
+            generateLocationsList();
+            
+            // 添加事件监听
+            closeInfo.addEventListener('click', () => {
+                infoBox.classList.add('hidden');
+            });
+            
+            zoomIn.addEventListener('click', () => {
+                scale = Math.min(scale + 0.1, 2);
+                updateMapScale();
+            });
+            
+            zoomOut.addEventListener('click', () => {
+                scale = Math.max(scale - 0.1, 0.5);
+                updateMapScale();
+            });
+            
+            resetMap.addEventListener('click', () => {
+                scale = 1;
+                updateMapScale();
+                map.style.transform = 'scale(1)';
+                infoBox.classList.add('hidden');
+            });
+            
+            // 实现地图拖拽功能
+            let isDragging = false;
+            let startX, startY;
+            let translateX = 0, translateY = 0;
+            let lastTranslateX = 0, lastTranslateY = 0;
+            
+            map.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX - lastTranslateX;
+                startY = e.clientY - lastTranslateY;
+                map.style.cursor = 'grabbing';
+            });
+            
+            map.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                e.preventDefault();
+                translateX = e.clientX - startX;
+                translateY = e.clientY - startY;
+                updateMapPosition();
+            });
+            
+            map.addEventListener('mouseup', () => {
+                isDragging = false;
+                lastTranslateX = translateX;
+                lastTranslateY = translateY;
+                map.style.cursor = 'move';
+            });
+            
+            map.addEventListener('mouseleave', () => {
+                isDragging = false;
+                lastTranslateX = translateX;
+                lastTranslateY = translateY;
+                map.style.cursor = 'move';
+            });
+            
+            // 触摸设备支持
+            map.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                startX = e.touches[0].clientX - lastTranslateX;
+                startY = e.touches[0].clientY - lastTranslateY;
+                map.style.cursor = 'grabbing';
+            });
+            
+            map.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                e.preventDefault();
+                translateX = e.touches[0].clientX - startX;
+                translateY = e.touches[0].clientY - startY;
+                updateMapPosition();
+            });
+            
+            map.addEventListener('touchend', () => {
+                isDragging = false;
+                lastTranslateX = translateX;
+                lastTranslateY = translateY;
+                map.style.cursor = 'move';
+            });
+            
+            function updateMapPosition() {
+                map.style.transform = `scale(${scale}) translate(${translateX / scale}px, ${translateY / scale}px)`;
+            }
+        }
+        
+        // 更新地图缩放
+        function updateMapScale() {
+            map.style.transform = `scale(${scale})`;
+        }
+        
+        // 添加地点标记
+        function addMarker(location) {
+            const marker = document.createElement('div');
+            marker.className = 'location-marker absolute w-6 h-6 bg-primary rounded-full flex items-center justify-center cursor-pointer z-10';
+            marker.style.left = `${location.position.x}%`;
+            marker.style.top = `${location.position.y}%`;
+            marker.innerHTML = '<i class="fa fa-map-marker text-white text-lg"></i>';
+            marker.title = location.name;
+            
+            // 点击标记显示信息
+            marker.addEventListener('click', (e) => {
+                e.stopPropagation(); // 防止触发地图拖拽
+                showLocationInfo(location, marker);
+            });
+            
+            map.appendChild(marker);
+        }
+        
+        // 显示地点信息
+        function showLocationInfo(location, marker) {
+            // 设置信息窗口位置
+            const markerRect = marker.getBoundingClientRect();
+            const mapRect = map.getBoundingClientRect();
+            
+            infoBox.style.left = `${markerRect.left - mapRect.left + markerRect.width/2}px`;
+            infoBox.style.top = `${markerRect.top - mapRect.top + markerRect.height}px`;
+            
+            // 填充信息内容
+            locationTitle.textContent = location.name;
+            locationContent.innerHTML = `
+                <div class="prose max-w-none">${location.description.replace(/\n/g, '<br>')}</div> 
+		<!--<p class="text-gray-700">${location.description}</p>-->
+                
+${location.images && location.images.length > 0 ? `
+  <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+    ${location.images.map((img, index) => `
+      <div class="group">
+        <img 
+          src="${img.src}" 
+          alt="${img.desc}" 
+          class="w-full h-48 object-cover rounded-md shadow-sm transition-transform duration-300 group-hover:scale-105 cursor-pointer hover:ring-2 hover:ring-primary"
+          onclick="openImageModal(${location.id}, ${index})"  <!-- 点击小图触发大图预览 -->
+        >
+        <p class="text-xs text-gray-500 mt-1 italic text-center">${img.desc}</p>
+      </div>
+    `).join('')}
+  </div>
+` : ''}
+                
+                ${location.audio ? `
+                    <div class="mt-3">
+                        <p class="text-sm font-medium text-gray-700 mb-1">
+                            <i class="fa fa-volume-up text-primary mr-1"></i>地点语音介绍
+                        </p>
+                        <audio controls class="w-full">
+                            <source src="${location.audio}" type="audio/mpeg">
+                            您的浏览器不支持音频播放
+                        </audio>
+                    </div>
+                ` : ''}
+                
+                ${location.video ? `
+                    <div class="mt-3">
+                        <p class="text-sm font-medium text-gray-700 mb-1">
+                            <i class="fa fa-film text-primary mr-1"></i>地点视频介绍
+                        </p>
+                        <video controls class="w-full h-48 object-cover rounded-md shadow-sm">
+                            <source src="${location.video}" type="video/mp4">
+                            您的浏览器不支持视频播放
+                        </video>
+                    </div>
+                ` : ''}
+            `;
+            
+            // 显示信息窗口
+            infoBox.classList.remove('hidden');
+        }
+        
+        // 生成地点列表
+        function generateLocationsList() {
+  locationsList.innerHTML = '';
+  
+  locations.forEach(location => {
+    const card = document.createElement('div');
+    card.className = 'border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow';
+    
+    // 确定要显示的图片路径和描述
+    let imgSrc = '';
+    let imgAlt = '';
+    // 优先级1：如果有image属性，用它
+    if (location.image) {
+      imgSrc = location.image;
+      imgAlt = location.imageDesc || location.name;
+    } 
+    // 优先级2：如果没有image，但有images数组且不为空，用第一张图
+    else if (location.images && location.images.length > 0) {
+      imgSrc = location.images[0].src;
+      imgAlt = location.images[0].desc || location.name;
+    }
+    
+    card.innerHTML = `
+      <!-- 只有确定了图片路径，才显示图片区域 -->
+      ${imgSrc ? `
+        <div class="h-40 overflow-hidden">
+          <img src="${imgSrc}" 
+               alt="${imgAlt}" 
+               class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+        </div>
+      ` : ''}
+      
+      <div class="p-4">
+        <h3 class="font-bold text-lg text-dark">${location.name}</h3>
+        <p class="text-gray-600 text-sm mt-1 line-clamp-2">${location.description}</p>
+        <button class="mt-3 text-primary hover:text-primary/80 text-sm font-medium flex items-center" 
+                data-id="${location.id}">
+          <i class="fa fa-map-marker mr-1"></i> 在地图上查看
+        </button>
+      </div>
+    `;
+                
+                locationsList.appendChild(card);
+                
+                // 添加点击事件
+                card.querySelector('button').addEventListener('click', () => {
+                    // 找到对应的标记并触发点击
+                    const marker = map.querySelector(`.location-marker[title="${location.name}"]`);
+                    if (marker) {
+                        marker.click();
+                        
+                        // 滚动到地图
+                        map.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            });
+        }
+        
+        // 点击地图空白处关闭信息窗口
+        map.addEventListener('click', () => {
+            infoBox.classList.add('hidden');
+        });
+        
+        // 页面加载完成后初始化地图
+        window.addEventListener('load', initMap);
+
+// 全局变量：记录当前预览的图片信息
+let currentLocationId = null;
+let currentImageIndex = null;
+
+// 打开大图模态框
+function openImageModal(locationId, imageIndex) {
+  // 记录当前图片的位置信息
+  currentLocationId = locationId;
+  currentImageIndex = imageIndex;
+  
+  // 找到对应的地点数据
+  const location = locations.find(item => item.id === locationId);
+  if (!location) return;
+  
+  // 获取当前图片信息
+  const currentImage = location.images[imageIndex];
+  if (!currentImage) return;
+  
+  // 更新模态框内容
+  document.getElementById('modalImage').src = currentImage.src;
+  document.getElementById('modalImageDesc').textContent = currentImage.desc;
+  
+  // 显示模态框
+  document.getElementById('imageModal').classList.remove('hidden');
+}
+
+// 关闭模态框
+document.getElementById('closeModal').addEventListener('click', () => {
+  document.getElementById('imageModal').classList.add('hidden');
+});
+
+// 点击模态框背景关闭
+document.getElementById('imageModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('imageModal')) {
+    document.getElementById('imageModal').classList.add('hidden');
+  }
+});
+
+// 切换到上一张图片
+document.getElementById('prevImage').addEventListener('click', () => {
+  if (currentLocationId === null || currentImageIndex === null) return;
+  
+  const location = locations.find(item => item.id === currentLocationId);
+  if (!location) return;
+  
+  // 计算上一张索引（循环切换）
+  currentImageIndex = (currentImageIndex - 1 + location.images.length) % location.images.length;
+  const prevImage = location.images[currentImageIndex];
+  
+  // 更新图片
+  document.getElementById('modalImage').src = prevImage.src;
+  document.getElementById('modalImageDesc').textContent = prevImage.desc;
+});
+
+// 切换到下一张图片
+document.getElementById('nextImage').addEventListener('click', () => {
+  if (currentLocationId === null || currentImageIndex === null) return;
+  
+  const location = locations.find(item => item.id === currentLocationId);
+  if (!location) return;
+  
+  // 计算下一张索引（循环切换）
+  currentImageIndex = (currentImageIndex + 1) % location.images.length;
+  const nextImage = location.images[currentImageIndex];
+  
+  // 更新图片
+  document.getElementById('modalImage').src = nextImage.src;
+  document.getElementById('modalImageDesc').textContent = nextImage.desc;
+});
+
+// 支持键盘操作（左右箭头切换，ESC关闭）
+document.addEventListener('keydown', (e) => {
+  if (!document.getElementById('imageModal').classList.contains('hidden')) {
+    if (e.key === 'Escape') {
+      document.getElementById('imageModal').classList.add('hidden');
+    } else if (e.key === 'ArrowLeft') {
+      document.getElementById('prevImage').click();
+    } else if (e.key === 'ArrowRight') {
+      document.getElementById('nextImage').click();
+    }
+  }
+});
+    </script>
+</body>
+</html>
