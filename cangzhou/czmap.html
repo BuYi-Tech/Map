@@ -312,10 +312,12 @@
         // 添加地点标记
         function addMarker(location) {
             const marker = document.createElement('div');
-            marker.className = 'location-marker absolute w-6 h-6 bg-primary rounded-full flex items-center justify-center cursor-pointer z-10';
+            marker.className = 'location-marker absolute w-6 h-6 bg-pink-500 hover:bg-pink-600 rounded-full flex items-center justify-center cursor-pointer z-10 transition-colors duration-300';
+            //marker.className = 'location-marker absolute w-6 h-6 bg-primary rounded-full flex items-center justify-center cursor-pointer z-10';
             marker.style.left = `${location.position.x}%`;
             marker.style.top = `${location.position.y}%`;
-            marker.innerHTML = '<i class="fa fa-map-marker text-white text-lg"></i>';
+            //marker.innerHTML = '<i class="fa fa-map-marker text-white text-lg"></i>';
+            marker.innerHTML = '<i class="fa fa-heart text-white text-lg"></i>';
             marker.title = location.name;
             
             // 点击标记显示信息
