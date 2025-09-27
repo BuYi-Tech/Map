@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>张家口导览图</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome图标 -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
+
+
+
+    <script>
+        // 配置Tailwind自定义颜色
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1E3A5F',   // 石家庄主色调-深蓝色
+                        secondary: '#10B981',
+                        accent: '#F59E0B',
+                        dark: '#1F2937',
+                    },
+                    fontFamily: {
+                        greatvibes: ['"Great Vibes"', 'cursive'], //艺术字
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .map-container {
+                background-image: url('zjk.jpg'); /* 可替换为裕华区实际地图*/ 
+                background-size: cover;
+                background-position: center;
+		        background-repeat: no-repeat;
+                position: relative;
+            }  
+             
+            /*.map-container {
+    background-image: url('bd1.jpg'); /* 保持原图片路径 
+    background-size: contain; /* 核心：图片完整显示，保持比例（大图缩小、小图放大） */
+    /*background-position: center;  图片居中显示 */
+     /*background-repeat: no-repeat; 不重复平铺 
+    position: relative;
+    min-height: 800px; /* 可选：避免图片过小时容器高度塌陷，可自定义数值（如800px） */
+   /* height: auto;  容器高度随背景图自适应，去掉固定高度束缚 */
+    /* max-width: 1600px; width: 100%; 占父容器的 90% */
+    /* 或固定宽度：width: 1400px; */
+    /* 或响应式：max-width: 1600px; width: 100%;（最大1600px，小屏幕自适应） */
+    /* margin: 0 auto; 可选：让容器在父元素中居中 
+}*/
+
+            .location-marker {
+                transition: all 0.3s ease;
+            }
+            .location-marker:hover {
+                transform: scale(1.2);
+            }
+            .info-box {
+                transform-origin: top center;
+                animation: fadeIn 0.3s ease forwards;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: scale(0.9); }
+                to { opacity: 1; transform: scale(1); }
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <header class="bg-primary text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <h1 class="text-[clamp(2rem,5vw,3rem)] font-bold flex items-center font-greatvibes">
+                <!--<i class="fa fa-map-marker mr-3"></i>标记-->
+                <img src="111.jpg" alt="自定义标记图标" class="ml-4 mr-3 w-40 h-28">
+                 大好河山张家口
+            </h1>
+                    <!--<div class="flex flex-wrap gap-2">
+                    <span class="px-2 py-1 bg-white/10 rounded-full text-xl backdrop-blur-sm">文明</span>
+                    <span class="px-2 py-1 bg-white/10 rounded-full text-xl backdrop-blur-sm">实力</span>
+                    <span class="px-2 py-1 bg-white/10 rounded-full text-xl backdrop-blur-sm">和谐</span>-->
+                </div>
+            <p class="text-blue-100 mt-1">      </p>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+            <!-- 地图控制区 -->
+            <div class="p-4 bg-gray-50 border-b flex flex-wrap gap-2 justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <button id="zoomIn" class="bg-primary hover:bg-primary/90 text-white p-2 rounded-full transition-all">
+                        <i class="fa fa-search-plus"></i>
+                    </button>
+                    <button id="zoomOut" class="bg-primary hover:bg-primary/90 text-white p-2 rounded-full transition-all">
+                        <i class="fa fa-search-minus"></i>
+                    </button>
+                    <button id="resetMap" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1.5 rounded-md transition-all text-sm">
+                        <i class="fa fa-refresh mr-1"></i>重置视图
+                    </button>
+                </div>
+                <div class="text-sm text-gray-600">
+                    <span class="font-medium"></span>登长城雄关，揽大好河山，品塞外风情——张家口邀您共赴千年之约
+                </div>
+            </div>
+            
+            <!-- 地图容器 -->
+            <div id="map" class="map-container w-full h-[1000px] cursor-move">
+                <!-- 地点标记 - 会通过JS动态添加  地图大小-->
+            </div>
+            
+            <!-- 信息窗口 - 默认隐藏 -->
+            <div id="infoBox" class="info-box hidden absolute bg-white rounded-lg shadow-xl p-4 max-w-md z-50 border border-gray-200">
+                <div class="flex justify-between items-start mb-3">
+                    <h3 id="locationTitle" class="text-xl font-bold text-dark"></h3>
+                    <button id="closeInfo" class="text-gray-500 hover:text-gray-700 transition-colors">
+                        <i class="fa fa-times text-lg"></i>
+                    </button>
+                </div>
+                
+                <div id="locationContent" class="space-y-4">
+                    <!-- 内容会通过JS动态填充 -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- 地点列表 -->
+        <div class="mt-8 bg-white rounded-xl shadow-md p-6">
+            <h2 class="text-xl font-bold text-dark mb-4 flex items-center">
+                <i class="fa fa-list-ul mr-2 text-primary"></i>张家口地点列表
+            </h2>
+            <div id="locationsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- 地点列表会通过JS动态生成 -->
+            </div>
+        </div>
+    </main>
+
+<!-- 图片预览模态框 -->
+<div id="imageModal" class="fixed inset-0 bg-black/90 flex items-center justify-center z-50 hidden">
+  <!-- 关闭按钮 -->
+  <button id="closeModal" class="absolute top-6 right-6 text-white text-3xl hover:text-gray-300 transition-colors">
+    <i class="fa fa-times"></i>
+  </button>
+  <!-- 左右切换按钮 -->
+  <button id="prevImage" class="absolute left-4 top-1/2 -translate-y-1/2 text-white text-4xl hover:text-gray-300 transition-colors">
+    <i class="fa fa-chevron-left"></i>
+  </button>
+  <button id="nextImage" class="absolute right-4 top-1/2 -translate-y-1/2 text-white text-4xl hover:text-gray-300 transition-colors">
+    <i class="fa fa-chevron-right"></i>
+  </button>
+  <!-- 大图显示区域 -->
+  <img id="modalImage" src="" alt="大图预览" class="max-w-[90%] max-h-[80vh] object-contain">
+  <!-- 图片描述 -->
+  <p id="modalImageDesc" class="absolute bottom-6 left-0 right-0 text-center text-white text-lg"></p>
+</div>
+
+    <footer class="bg-primary text-white mt-12 py-6">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy;  燕赵大地 | 冰雪之城</p>
+        </div>
+    </footer>
+
+    <script>
+        // 石家庄裕华区地点数据
+        const locations = [
+            {
+                id: 1,
+                name: "河北北方学院",
+description:"河北北方学院是位于河北张家口的综合性省属本科院校，2003年由张家口医学院、师范专科学校和农业高等专科学校合并组建，办学底蕴可追溯至1923年。\n学校现有4个校区，开设77个本科专业，覆盖11个学科门类，以医学、农学为优势，拥有2个国家级、24个省级一流本科专业建设点，5个一级学科硕士学位授权点及6个硕士专业学位授权类别。\n依托2所直属附属医院、520个实践教学基地及雄厚师资（校本部正副高职称教师709人），学校聚焦高素质应用型人才培养，同时与多国高校开展合作交流，为地方及国家发展提供人才支撑。",
+                position: { x: 59, y: 41 },
+                images: [
+     		 { src: "1.jpg", desc: "河北北方学院场景1" },
+{ src: "2.jpg", desc: "河北北方学院场景2" },
+{ src: "3.jpg", desc: "河北北方学院场景3" }
+
+   		 ],
+                audio: "",
+                video: "1.mp4"
+            },
+           {
+                id: 2,
+                name: "河北北方学院附属第一医院",
+description:"河北北方学院附属第一医院始建于1938年，是一所集医疗、教学、科研、康复和保健为一体的大型省属综合三级甲等医院。\n医院位于河北省张家口市桥西区长青路12号，占地面积10万余平方米，建筑面积17万平方米，编制床位2000张。医院拥有临床科室48个、医技科室12个、职能处室39个、教研室31个、科研机构3个，专业技术委员会14个。\n医院设备先进，拥有3.0T磁共振、320排螺旋CT、SPECT/CT、医用高能直线加速器等国际先进医疗设备4000余台（套）。现有在职职工2390人，专业技术人员2293人，其中正高120人、副高225人，有博士46人、硕士599人，硕士研究生导师141名。\n医院骨科为省级重点学科，呼吸与危重症医学科为省级重点发展学科；妇科、骨科、胸外科等为省级临床重点专科，普通外科、麻醉科、医学影像部等为省级临床重点培育专科。\n作为临床教学医院，每年承担12000余学时的课堂教学，承担硕士研究生、留学生、本科生的临床实践等教学工作，接收省内外进修医师200余名，近年培养硕士研究生近600名。\n医院还是2022年冬奥会、冬残奥会医疗保障定点医院，中国胸痛中心，国家级高级卒中中心，国家级爱婴医院等，先后荣获全国医院（卫生）文化建设先进单位、全国百姓放心示范医院等多项荣誉称号。",
+                position: { x: 26, y: 52 },
+                images: [
+     		 { src: "4.jpg", desc: "河北北方学院附属第一医院场景" }
+
+   		 ],
+                audio: "",
+                video: ""
+            }, 
+            {
+                id: 3,
+                name: "张家口市图书馆",
+                //description:"",
+description:"张家口市图书馆是一座集数字化、网络化和智能化于一体的现代化图书馆。以下是其详细简介：\n•建馆历史：成立于1949年4月，前身是原察哈尔省立图书馆，新馆于2021年5月开馆试运行，2023年2月正式运行。\n•场馆概况：位于经开区长城西大街4号，总面积2.2万平方米，阅览座席2200个，总藏书量为70万册，是国家一级馆。\n•场馆设施：由青少年阅览区、综合阅览区、数字阅览区、24小时自助阅览室、报刊阅览区、展厅、报告厅和密集书库组成。配有图书智能服务平台、自助办证机、自助借还书机等电子设备。\n•特色活动：举办京津冀蒙“讲家乡故事 展华夏风采——我是文化小使者”活动、“阅见美好”读者分享会等多种活动，还开通了“冀图邮书”线上借阅服务。\n•所获荣誉：2022年被授予“张家口市科普教育基地”荣誉称号，2023年被授予“河北省社会科学普及基地”荣誉，2024年被授予“全国社科组织先进单位”荣誉称号。",
+                position: { x: 68, y: 44 },
+                images: [
+     		 { src: "5.jpg", desc: "张家口市图书馆场景1" },
+     		 { src: "6.jpg", desc: "张家口市图书馆场景2" },
+     		 { src: "7.jpg", desc: "张家口市图书馆场景3" },
+ { src: "8.jpg", desc: "张家口市图书馆场景4" }
+   		 ],
+                audio: "",
+                video: ""
+            },
+            {
+                id: 4,
+                name: "苏蒙联军烈士陵园",
+description:"苏蒙联军烈士陵园位于河北省张家口市张北县县城南15公里的野狐岭西侧山上，是为纪念在1945年解放张北县城的战斗中牺牲的60名苏蒙联军烈士而建。\n陵园内的纪念碑坐北朝南，碑身正面刻有“苏蒙联军烈士永垂不朽”的汉白玉碑文，背面刻有烈士名单等内容。陵园整体庄严肃穆，是缅怀革命先烈、进行爱国主义教育的重要场所，见证了中、苏、蒙三国人民在反法西斯战争中结下的深厚友谊。",
+                position: { x:32, y: 32 },
+                images: [
+     		 { src: "9.jpg", desc: "苏蒙联军烈士陵园场景1" },
+             { src: "10.jpg", desc: "苏蒙联军烈士陵园场景2" },
+             { src: "11.jpg", desc: "苏蒙联军烈士陵园场景3" }
+   		 ],
+                audio: "",
+                video: ""
+            },
+            {
+                id: 5,
+                name: "张家口市中级人民法院",
+description:"•成立时间：1993年7月1日，由原张家口市中级人民法院和张家口地区中级人民法院合并而成。\n•	地理位置：位于河北省张家口市桥东区建国路29号。\n•机构设置：市中院现有27个部门，其中业务部门14个、综合部门13个。\n•人员编制：两级法院现有在编人员1395人，其中法官744人。市中院现有在编人员209人，其中法官101人。\n•主要职责：依法审判法律规定由市中级人民法院管辖的和其认为应当由自己审判的刑事、民事、行政等第一审案件；依法审判法律规定由市中级人民法院管辖的刑事、民事、行政等第二审案件；依法审判对基层人民法院判决和裁定的上诉和抗诉案件等。 ",
+                position: { x: 48, y: 56 },
+                images: [
+     		{ src: "12.jpg", desc: "张家口市中级人民法院场景" }
+             
+   		 ],
+                audio: "",
+                video: ""
+            },
+                        {
+                id: 6,
+                name: "武城街",
+description:" 武城街是张家口市桥西区一条极具历史文化底蕴和商业价值的街道。以下是其详细简介：\n•历史渊源：武城街始建于明朝成化年间，距今已有530多年历史。其因靠近始建于明朝宣德四年的张家口堡（别称武城）而得名，最初是军人们交换物资的场所，后随着“隆庆和议”的签订，逐渐发展成为重要商业街。1909年京张铁路开通后，武城街迎来发展巅峰。\n•街道概况：主街全长420米，平均宽度约8米，街道整体格局基本沿袭旧有格局，由一条主街和小河套街、桥西街两条辅街组成。\n•商业发展：20世纪90年代初，武城街被改造成步行街。如今，街道两边店铺以二层楼房居多，有自然门店300余家，主要经营服装、鞋帽、金银首饰、日用百货等，其中服装、鞋业店铺约占75%，日客流量约六七万人次，节假日可达10万人次以上。\n•文化特色：武城街不仅是商业中心，还充满市井气息，有大市场凉皮、炸串、一飞铁板鱿鱼等众多小吃，承载着几代张家口人的回忆。",
+                position: { x: 28, y: 16 },
+                images: [
+     		{ src: "13.jpg", desc: "武城街场景1" },
+            { src: "14.jpg", desc: "武城街场景2" },
+            { src: "15.jpg", desc: "武城街场景3" }
+             
+   		 ],
+                audio: "",
+                video: ""
+            },
+
+        ];
+
+        // DOM元素
+        const map = document.getElementById('map');
+        const infoBox = document.getElementById('infoBox');
+        const locationTitle = document.getElementById('locationTitle');
+        const locationContent = document.getElementById('locationContent');
+        const closeInfo = document.getElementById('closeInfo');
+        const zoomIn = document.getElementById('zoomIn');
+        const zoomOut = document.getElementById('zoomOut');
+        const resetMap = document.getElementById('resetMap');
+        const locationsList = document.getElementById('locationsList');
+
+        // 地图缩放比例
+        let scale = 1;
+        
+        // 初始化地图
+        function initMap() {
+            // 添加地点标记
+            locations.forEach(location => {
+                addMarker(location);
+            });
+            
+            // 生成地点列表
+            generateLocationsList();
+            
+            // 添加事件监听
+            closeInfo.addEventListener('click', () => {
+                infoBox.classList.add('hidden');
+            });
+            
+            zoomIn.addEventListener('click', () => {
+                scale = Math.min(scale + 0.1, 2);
+                updateMapScale();
+            });
+            
+            zoomOut.addEventListener('click', () => {
+                scale = Math.max(scale - 0.1, 0.5);
+                updateMapScale();
+            });
+            
+            resetMap.addEventListener('click', () => {
+                scale = 1;
+                updateMapScale();
+                map.style.transform = 'scale(1)';
+                infoBox.classList.add('hidden');
+            });
+            
+            // 实现地图拖拽功能
+            let isDragging = false;
+            let startX, startY;
+            let translateX = 0, translateY = 0;
+            let lastTranslateX = 0, lastTranslateY = 0;
+            
+            map.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX - lastTranslateX;
+                startY = e.clientY - lastTranslateY;
+                map.style.cursor = 'grabbing';
+            });
+            
+            map.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                e.preventDefault();
+                translateX = e.clientX - startX;
+                translateY = e.clientY - startY;
+                updateMapPosition();
+            });
+            
+            map.addEventListener('mouseup', () => {
+                isDragging = false;
+                lastTranslateX = translateX;
+                lastTranslateY = translateY;
+                map.style.cursor = 'move';
+            });
+            
+            map.addEventListener('mouseleave', () => {
+                isDragging = false;
+                lastTranslateX = translateX;
+                lastTranslateY = translateY;
+                map.style.cursor = 'move';
+            });
+            
+            // 触摸设备支持
+            map.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                startX = e.touches[0].clientX - lastTranslateX;
+                startY = e.touches[0].clientY - lastTranslateY;
+                map.style.cursor = 'grabbing';
+            });
+            
+            map.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                e.preventDefault();
+                translateX = e.touches[0].clientX - startX;
+                translateY = e.touches[0].clientY - startY;
+                updateMapPosition();
+            });
+            
+            map.addEventListener('touchend', () => {
+                isDragging = false;
+                lastTranslateX = translateX;
+                lastTranslateY = translateY;
+                map.style.cursor = 'move';
+            });
+            
+            function updateMapPosition() {
+                map.style.transform = `scale(${scale}) translate(${translateX / scale}px, ${translateY / scale}px)`;
+            }
+        }
+        
+        // 更新地图缩放
+        function updateMapScale() {
+            map.style.transform = `scale(${scale})`;
+        }
+        
+        // 添加地点标记
+        function addMarker(location) {
+            const marker = document.createElement('div');
+            marker.className = 'location-marker absolute w-6 h-6 bg-primary rounded-full flex items-center justify-center cursor-pointer z-10';
+            marker.style.left = `${location.position.x}%`;
+            marker.style.top = `${location.position.y}%`;
+            
+            //marker.innerHTML = '<img src="6.jpg" alt="地点标记" class="w-5 h-5">';
+            marker.innerHTML = '<i class="fa fa-map-marker text-white text-lg"></i>';//标记图
+            marker.title = location.name;
+            
+            // 点击标记显示信息
+            marker.addEventListener('click', (e) => {
+                e.stopPropagation(); // 防止触发地图拖拽
+                showLocationInfo(location, marker);
+            });
+            
+            map.appendChild(marker);
+        }
+        
+        // 显示地点信息
+        function showLocationInfo(location, marker) {
+            // 设置信息窗口位置
+            const markerRect = marker.getBoundingClientRect();
+            const mapRect = map.getBoundingClientRect();
+            
+            infoBox.style.left = `${markerRect.left - mapRect.left + markerRect.width/2}px`;
+            infoBox.style.top = `${markerRect.top - mapRect.top + markerRect.height}px`;
+            
+            // 填充信息内容
+            locationTitle.textContent = location.name;
+            locationContent.innerHTML = `
+                <div class="prose max-w-none">${location.description.replace(/\n/g, '<br>')}</div> 
+		<!--<p class="text-gray-700">${location.description}</p>-->
+                
+${location.images && location.images.length > 0 ? `
+  <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+    ${location.images.map((img, index) => `
+      <div class="group">
+        <img 
+          src="${img.src}" 
+          alt="${img.desc}" 
+          class="w-full h-48 object-cover rounded-md shadow-sm transition-transform duration-300 group-hover:scale-105 cursor-pointer hover:ring-2 hover:ring-primary"
+          onclick="openImageModal(${location.id}, ${index})"  <!-- 点击小图触发大图预览 -->
+        >
+        <p class="text-xs text-gray-500 mt-1 italic text-center">${img.desc}</p>
+      </div>
+    `).join('')}
+  </div>
+` : ''}
+                
+                ${location.audio ? `
+                    <div class="mt-3">
+                        <p class="text-sm font-medium text-gray-700 mb-1">
+                            <i class="fa fa-volume-up text-primary mr-1"></i>地点语音介绍
+                        </p>
+                        <audio controls class="w-full">
+                            <source src="${location.audio}" type="audio/mpeg">
+                            您的浏览器不支持音频播放
+                        </audio>
+                    </div>
+                ` : ''}
+                
+                ${location.video ? `
+                    <div class="mt-3">
+                        <p class="text-sm font-medium text-gray-700 mb-1">
+                            <i class="fa fa-film text-primary mr-1"></i>地点视频介绍
+                        </p>
+                        <video controls class="w-full h-48 object-cover rounded-md shadow-sm">
+                            <source src="${location.video}" type="video/mp4">
+                            您的浏览器不支持视频播放
+                        </video>
+                    </div>
+                ` : ''}
+            `;
+            
+            // 显示信息窗口
+            infoBox.classList.remove('hidden');
+        }
+        
+        // 生成地点列表
+        function generateLocationsList() {
+  locationsList.innerHTML = '';
+  
+  locations.forEach(location => {
+    const card = document.createElement('div');
+    card.className = 'border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow';
+    
+    // 确定要显示的图片路径和描述
+    let imgSrc = '';
+    let imgAlt = '';
+    // 优先级1：如果有image属性，用它
+    if (location.image) {
+      imgSrc = location.image;
+      imgAlt = location.imageDesc || location.name;
+    } 
+    // 优先级2：如果没有image，但有images数组且不为空，用第一张图
+    else if (location.images && location.images.length > 0) {
+      imgSrc = location.images[0].src;
+      imgAlt = location.images[0].desc || location.name;
+    }
+    
+    card.innerHTML = `
+      <!-- 只有确定了图片路径，才显示图片区域 -->
+      ${imgSrc ? `
+        <div class="h-40 overflow-hidden">
+          <img src="${imgSrc}" 
+               alt="${imgAlt}" 
+               class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+        </div>
+      ` : ''}
+      
+      <div class="p-4">
+        <h3 class="font-bold text-lg text-dark">${location.name}</h3>
+        <p class="text-gray-600 text-sm mt-1 line-clamp-2">${location.description}</p>
+        <button class="mt-3 text-primary hover:text-primary/80 text-sm font-medium flex items-center" 
+                data-id="${location.id}">
+          <i class="fa fa-map-marker mr-1"></i> 在地图上查看
+        </button>
+      </div>
+    `;
+                
+                locationsList.appendChild(card);
+                
+                // 添加点击事件
+                card.querySelector('button').addEventListener('click', () => {
+                    // 找到对应的标记并触发点击
+                    const marker = map.querySelector(`.location-marker[title="${location.name}"]`);
+                    if (marker) {
+                        marker.click();
+                        
+                        // 滚动到地图
+                        map.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            });
+        }
+        
+        // 点击地图空白处关闭信息窗口
+        map.addEventListener('click', () => {
+            infoBox.classList.add('hidden');
+        });
+        
+        // 页面加载完成后初始化地图
+        window.addEventListener('load', initMap);
+
+// 全局变量：记录当前预览的图片信息
+let currentLocationId = null;
+let currentImageIndex = null;
+
+// 打开大图模态框
+function openImageModal(locationId, imageIndex) {
+  // 记录当前图片的位置信息
+  currentLocationId = locationId;
+  currentImageIndex = imageIndex;
+  
+  // 找到对应的地点数据
+  const location = locations.find(item => item.id === locationId);
+  if (!location) return;
+  
+  // 获取当前图片信息
+  const currentImage = location.images[imageIndex];
+  if (!currentImage) return;
+  
+  // 更新模态框内容
+  document.getElementById('modalImage').src = currentImage.src;
+  document.getElementById('modalImageDesc').textContent = currentImage.desc;
+  
+  // 显示模态框
+  document.getElementById('imageModal').classList.remove('hidden');
+}
+
+// 关闭模态框
+document.getElementById('closeModal').addEventListener('click', () => {
+  document.getElementById('imageModal').classList.add('hidden');
+});
+
+// 点击模态框背景关闭
+document.getElementById('imageModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('imageModal')) {
+    document.getElementById('imageModal').classList.add('hidden');
+  }
+});
+
+// 切换到上一张图片
+document.getElementById('prevImage').addEventListener('click', () => {
+  if (currentLocationId === null || currentImageIndex === null) return;
+  
+  const location = locations.find(item => item.id === currentLocationId);
+  if (!location) return;
+  
+  // 计算上一张索引（循环切换）
+  currentImageIndex = (currentImageIndex - 1 + location.images.length) % location.images.length;
+  const prevImage = location.images[currentImageIndex];
+  
+  // 更新图片
+  document.getElementById('modalImage').src = prevImage.src;
+  document.getElementById('modalImageDesc').textContent = prevImage.desc;
+});
+
+// 切换到下一张图片
+document.getElementById('nextImage').addEventListener('click', () => {
+  if (currentLocationId === null || currentImageIndex === null) return;
+  
+  const location = locations.find(item => item.id === currentLocationId);
+  if (!location) return;
+  
+  // 计算下一张索引（循环切换）
+  currentImageIndex = (currentImageIndex + 1) % location.images.length;
+  const nextImage = location.images[currentImageIndex];
+  
+  // 更新图片
+  document.getElementById('modalImage').src = nextImage.src;
+  document.getElementById('modalImageDesc').textContent = nextImage.desc;
+});
+
+// 支持键盘操作（左右箭头切换，ESC关闭）
+document.addEventListener('keydown', (e) => {
+  if (!document.getElementById('imageModal').classList.contains('hidden')) {
+    if (e.key === 'Escape') {
+      document.getElementById('imageModal').classList.add('hidden');
+    } else if (e.key === 'ArrowLeft') {
+      document.getElementById('prevImage').click();
+    } else if (e.key === 'ArrowRight') {
+      document.getElementById('nextImage').click();
+    }
+  }
+});
+    </script>
+</body>
+</html>
