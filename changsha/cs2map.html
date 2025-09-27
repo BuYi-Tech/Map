@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>“数字乡愁·文化传承·法治印记”长沙人文地图</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome图标 -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
+
+
+
+    <script>
+        // 配置Tailwind自定义颜色
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#CC0000',   // 石家庄主色调-深蓝色
+                        secondary: '#10B981',
+                        accent: '#F59E0B',
+                        dark: '#1F2937',
+                    },
+                    fontFamily: {
+                        greatvibes: ['"Great Vibes"', 'cursive'], //艺术字
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .map-container {
+                background-image: url('changsha.jpg'); /* 可替换为裕华区实际地图*/ 
+                background-size: cover;
+                background-position: center;
+		        background-repeat: no-repeat;
+                position: relative;
+            }  
+             
+            /*.map-container {
+    background-image: url('bd1.jpg'); /* 保持原图片路径 
+    background-size: contain; /* 核心：图片完整显示，保持比例（大图缩小、小图放大） */
+    /*background-position: center;  图片居中显示 */
+     /*background-repeat: no-repeat; 不重复平铺 
+    position: relative;
+    min-height: 800px; /* 可选：避免图片过小时容器高度塌陷，可自定义数值（如800px） */
+   /* height: auto;  容器高度随背景图自适应，去掉固定高度束缚 */
+    /* max-width: 1600px; width: 100%; 占父容器的 90% */
+    /* 或固定宽度：width: 1400px; */
+    /* 或响应式：max-width: 1600px; width: 100%;（最大1600px，小屏幕自适应） */
+    /* margin: 0 auto; 可选：让容器在父元素中居中 
+}*/
+
+            .location-marker {
+                transition: all 0.3s ease;
+            }
+            .location-marker:hover {
+                transform: scale(1.2);
+            }
+            .info-box {
+                transform-origin: top center;
+                animation: fadeIn 0.3s ease forwards;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: scale(0.9); }
+                to { opacity: 1; transform: scale(1); }
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <header class="bg-primary text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <h1 class="text-[clamp(2rem,5vw,3rem)] font-bold flex items-center font-greatvibes">
+                <!--<i class="fa fa-map-marker mr-3"></i>标记-->
+                <img src="111.jpg" alt="自定义标记图标" class="ml-4 mr-3 w-40 h-28">
+                “数字乡愁·文化传承·法治印记”长沙人文地图 
+            </h1>
+                    <!--<div class="flex flex-wrap gap-2">
+                    <span class="px-2 py-1 bg-white/10 rounded-full text-xl backdrop-blur-sm">文明</span>
+                    <span class="px-2 py-1 bg-white/10 rounded-full text-xl backdrop-blur-sm">实力</span>
+                    <span class="px-2 py-1 bg-white/10 rounded-full text-xl backdrop-blur-sm">和谐</span>-->
+                </div>
+            <p class="text-blue-100 mt-1">      </p>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+            <!-- 地图控制区 -->
+            <div class="p-4 bg-gray-50 border-b flex flex-wrap gap-2 justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <button id="zoomIn" class="bg-primary hover:bg-primary/90 text-white p-2 rounded-full transition-all">
+                        <i class="fa fa-search-plus"></i>
+                    </button>
+                    <button id="zoomOut" class="bg-primary hover:bg-primary/90 text-white p-2 rounded-full transition-all">
+                        <i class="fa fa-search-minus"></i>
+                    </button>
+                    <button id="resetMap" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1.5 rounded-md transition-all text-sm">
+                        <i class="fa fa-refresh mr-1"></i>重置视图
+                    </button>
+                </div>
+                <div class="text-sm text-gray-600">
+                    <span class="font-medium">提示：</span>点击标记查看地点介绍
+                </div>
+            </div>
+            
+            <!-- 地图容器 -->
+            <div id="map" class="map-container w-full h-[900px] cursor-move">
+                <!-- 地点标记 - 会通过JS动态添加  地图大小-->
+            </div>
+            
+            <!-- 信息窗口 - 默认隐藏 -->
+            <div id="infoBox" class="info-box hidden absolute bg-white rounded-lg shadow-xl p-4 max-w-md z-50 border border-gray-200">
+                <div class="flex justify-between items-start mb-3">
+                    <h3 id="locationTitle" class="text-xl font-bold text-dark"></h3>
+                    <button id="closeInfo" class="text-gray-500 hover:text-gray-700 transition-colors">
+                        <i class="fa fa-times text-lg"></i>
+                    </button>
+                </div>
+                
+                <div id="locationContent" class="space-y-4">
+                    <!-- 内容会通过JS动态填充 -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- 地点列表 -->
+        <div class="mt-8 bg-white rounded-xl shadow-md p-6">
+            <h2 class="text-xl font-bold text-dark mb-4 flex items-center">
+                <i class="fa fa-list-ul mr-2 text-primary"></i>长沙地点列表
+            </h2>
+            <div id="locationsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- 地点列表会通过JS动态生成 -->
+            </div>
+        </div>
+    </main>
+
+<!-- 图片预览模态框 -->
+<div id="imageModal" class="fixed inset-0 bg-black/90 flex items-center justify-center z-50 hidden">
+  <!-- 关闭按钮 -->
+  <button id="closeModal" class="absolute top-6 right-6 text-white text-3xl hover:text-gray-300 transition-colors">
+    <i class="fa fa-times"></i>
+  </button>
+  <!-- 左右切换按钮 -->
+  <button id="prevImage" class="absolute left-4 top-1/2 -translate-y-1/2 text-white text-4xl hover:text-gray-300 transition-colors">
+    <i class="fa fa-chevron-left"></i>
+  </button>
+  <button id="nextImage" class="absolute right-4 top-1/2 -translate-y-1/2 text-white text-4xl hover:text-gray-300 transition-colors">
+    <i class="fa fa-chevron-right"></i>
+  </button>
+  <!-- 大图显示区域 -->
+  <img id="modalImage" src="" alt="大图预览" class="max-w-[90%] max-h-[80vh] object-contain">
+  <!-- 图片描述 -->
+  <p id="modalImageDesc" class="absolute bottom-6 left-0 right-0 text-center text-white text-lg"></p>
+</div>
+
+    <footer class="bg-primary text-white mt-12 py-6">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy;  橘子洲头 | 星火燎原</p>
+        </div>
+    </footer>
+
+    <script>
+        // 石家庄裕华区地点数据
+        const locations = [
+            {
+                id: 1,
+                name: "橘子洲",
+description:"《湘红踪觅》橘子洲头，是革命星火燎原之地！\n橘子洲坐落于湘江江心，西临岳麓山，东临长沙城，橘子洲介名山城市之间，延绵数十里，被誉为“中国第一洲”。湘江水浩浩北行抛泥卸沙堆积而成的内陆绿洲，造就了长沙独特的景观风貌。而青年毛泽东在1925年挥毫写就的一首《沁园春·长沙》，则为这片绿洲刻上红色印记，注入了更深刻恒久的红色基因。\n“独立寒秋，湘江北去，橘子洲头。”由湖南南下广州，腥风血雨的革命路上，32岁的毛泽东在橘子洲头发出“问苍茫大地，谁主沉浮?”的历史叩问。橘子洲头，不仅是一处风景秀丽的旅游胜地，更是一座革命精神的丰碑，其承载的核心精神，是革命理想主义与家国情怀的高度融合。在这里，我们可以看到革命先辈们不畏艰难、勇于斗争的精神风貌。他们用青春和热血，书写了中国革命的壮丽篇章。",
+                position: { x: 25, y: 66 },
+                images: [
+     		 { src: "1.jpg", desc: "橘子洲场景1" },
+             { src: "2.jpg", desc: "橘子洲场景2" },
+{ src: "3.jpg", desc: "橘子洲场景3" }
+
+
+   		 ],
+                audio: "",
+                video: "1.mp4"
+            },
+           {
+                id: 2,
+                name: "岳麓书院",
+description:"岳麓书院，一座岳麓书院，半部近代史。\n长沙市岳麓山脚下，湘江西岸，隐匿着一座承载千年历史的文化殿堂——岳麓书院。也是中国古代“四大书院”之一。北宋开宝九年（976年），潭州太守朱洞创建岳麓书院，大中祥符八年（1015年）宋真宗颁书赐额。南宋时，朱熹与张栻在此论学，史称“朱张会讲”，首开书院会讲先河。历经宋、元、明、清各代兴学不辍，1903年改湖南高等学堂，1926年定名湖南大学，1937年改国立湖南大学，目前是湖南大学的历史与哲学学院。\n岳麓书院它不仅是物理空间的存在，更是湖湘文化的精神殿堂和象征，它承载着历史记忆，凝聚着文化认同，是湖南人文化自信的重要源泉。趋近书院，“岳麓书院”四个大字笔力雄健，匾额下“惟楚有材，于斯为盛”的对联赫赫醒目，短短八字，道尽了岳麓书院作为湖湘文化渊薮，人才辈出的辉煌往昔。迈进大门，便是赫曦台。穿过二门，讲堂便映入眼帘。讲堂宽敞明亮，正中高悬“实事求是”匾额，这不仅是岳麓书院的治学理念，更是一种为人处世的准则，影响着一代又一代的学子。",
+                position: { x: 15, y: 82 },
+                images: [
+     		 { src: "4.jpg", desc: "岳麓书院场景1" },
+              { src: "5.jpg", desc: "岳麓书院场景2" },
+               { src: "6.jpg", desc: "岳麓书院场景3" },
+
+   		 ],
+                audio: "",
+                video: "2.mp4"
+            }, 
+            {
+                id: 3,
+                name: "星沙法治公园",
+                //description:"",
+description:"星沙法治公园的重要意义，核心在于将抽象法治精神转化为可感知的公共空间，构建了覆盖城乡的法治文化传播网络，其价值可从三个维度深化：\n	完善县域法治文化阵地体系：作为长沙县城区首个法治主题公园，它填补了城区法治文化设施的空白，与此前15个农村法治文化公园（广场）形成“城区核心+乡村节点”的全域覆盖格局。这种布局打破了“普法仅靠课堂”的传统模式，让法治宣传从固定场所延伸到群众日常休憩的“15分钟生活圈”，实现了法治文化传播的“城乡无差别”。\n	创新普法教育的“沉浸式”模式：公园摒弃了单一标语式宣传，通过雕塑、楹联、法治长廊等艺术化载体，将宪法精神、法律条文与自然景观融合。例如，市民在散步时可通过雕塑了解法律典故，在休息时能借助橱窗学习民生法规，这种“无意识接受”的教育方式，比传统宣讲更易被大众接受，尤其降低了青少年、老年群体的普法理解门槛。\n	推动法治精神融入社会治理：公园不仅是宣传窗口，更是基层法治实践的“展示平台”。其定期举办的法治讲座、法律咨询、模拟法庭等活动，让群众从“被动学法”转向“主动用法”。同时，它与农村法治阵地形成联动，为县域内矛盾调解、基层普法提供了实体化支撑，助力构建“办事依法、遇事找法”的社会治理氛围，成为长沙县推进法治社会建设的“有形抓手”。",
+                position: { x: 75, y: 5 },
+                images: [
+     		 { src: "7.jpg", desc: "星沙法治公园场景1" },
+     		 { src: "8.jpg", desc: "星沙法治公园场景2" },
+     		 { src: "9.jpg", desc: "星沙法治公园场景3" }
+
+   		 ],
+                audio: "",
+                video: "3.mp4"
+            },
+            {
+                id: 4,
+                name: "长沙县人民法院",
+description:"长沙县人民法院作为国家审判机关，是县域法治建设的核心力量，其意义深刻体现在司法公正守护、社会治理赋能、经济发展护航等多个维度。\n在司法公正保障方面，法院依法独立行使审判权，涵盖刑事、民事、行政等各类一审案件审理及执行工作。通过“简案快审、繁案精审”的分流机制与专业化审判团队建设，2024年专项执行行动为当事人兑现胜诉权益25.77亿元，以刚性司法实践维护法律权威，让公平正义可感可及。\n在社会治理创新中，法院深度融入基层治理格局，派驻专业团队入驻综治中心，构建“法官指导+多元调解”模式，已指导化解案件400余起。通过“调-裁-审”衔接机制，平均审理周期缩短8天，实现矛盾纠纷“一站式受理、全链条调处”，从源头减少诉讼增量。同时以“劳务代偿”等创新判决修复生态，并开展普法宣传，强化公民法治意识。\n在经济发展护航上，针对县域工程机械产业特点，设立驻企诉源治理工作站，9个月调解案件超百件，为企业节约成本近30万元。自贸片区法庭的设立与专项执行行动，既优化了法治化营商环境，又为企业回款3.8亿元，以司法服务精准对接“三高四新”发展需求。\n法院通过司法实践与服务创新，筑牢了县域社会公平正义的防线，为长沙县高质量发展提供了坚实法治保障。",
+                position: { x: 95, y: 17 },
+                images: [
+     		 { src: "10.jpg", desc: "长沙县人民法院场景1" },
+             { src: "11.jpg", desc: "长沙县人民法院场景2" },
+             { src: "12.jpg", desc: "长沙县人民法院场景3" }
+   		 ],
+                audio: "",
+                video: "4.mp4"
+            },
+            {
+                id: 5,
+                name: "福地原乡示范片",
+description:" 浏阳市张坊镇和小河乡长沙市福地原乡美丽宜居村庄示范片 ：由张坊镇和小河乡共同打造，有“道官冲——中国非遗生态村”，利用“非遗+研学”等模式发展产业，还有湖洋梯田民宿集聚区、鱼鳞坝等网红景点。\n福地原乡示范片以乡村实践鲜活诠释核心价值观。张坊镇道官冲活化9项非遗，建研学馆让古法造纸等技艺传承，小河乡培育400名农民画师，用画笔绘就文明底色。“认领一丘田”“电商助农”联动城乡，盐菜产业让村民家门口就业增收，践行富强愿景。干部搭台引资源，村民实干兴家园，“新村民”与原住民相融，网红景点与乡土烟火共生，尽显敬业与和谐之美。",
+                position: { x: 24, y: 35 },
+                images: [
+     		{ src: "13.jpg", desc: "福地原乡示范片场景1" },
+            { src: "14.jpg", desc: "福地原乡示范片场景2" },
+            { src: "15.jpg", desc: "福地原乡示范片场景3" }
+             
+   		 ],
+                audio: "",
+                video: "5.mp4"
+            },
+            {
+                id: 6,
+                name: "长沙博物馆",
+description:"长沙博物馆是国家一级综合性地志博物馆，坐落于开福区新河三角洲滨江文化园，2015年迁至新馆开放，是承载城市记忆的文化地标。 馆内馆藏文物超6万件（套），涵盖旧石器时代至近现代，商周青铜器、楚汉文物等极具地域特色，核心基本陈列为“湘江北去·中流击水——长沙历史文化陈列”，年均举办近10个特展，还通过AR导览、光影演出等科技手段活化文物。2025年跻身全国地市百强博物馆季军，年均接待观众超百万，是兼具历史深度与创新活力的文化客厅 。\n长沙博物馆以文物为桥，让核心价值观可感可触。商周青铜器、楚汉文物串联文明脉络，唤起文化自信与爱国情怀；AR技术活化文物、光影重现古城，诠释文明与和谐；免费开放惠及所有人，彰显平等；工作人员修护文物、讲解服务，践行敬业。它让价值观融入参观细节，自然传递给每一位观众。 ",
+                position: { x: 33, y: 23 },
+                images: [
+     		{ src: "16.jpg", desc: "长沙博物馆场景1" },
+            { src: "17.jpg", desc: "长沙博物馆场景2" },
+            { src: "18.jpg", desc: "长沙博物馆场景3" }
+             
+   		 ],
+                audio: "",
+                video: "5.mp4"
+            },
+            {
+                id: 7,
+                name: "长沙银发族餐厅",
+description:"长沙银发族餐厅是“政府主导、社区搭台、社会运营”的为老服务载体，以解决长者“吃饭难”为核心 。每日供应营养均衡的套餐，菜品软烂适配老年需求，支持刷脸支付与政府补贴 。部分餐厅联合骑手打造15分钟送餐圈，还开展节日活动与公益帮扶，既是暖心厨房，也是长者社交驿站。\n长沙银发族餐厅在发展进程中也面临着许多挑战，在法治上，跨区老人补贴差异引发基层矛盾，部分运营者借“补贴速通游戏”套取资金后撤退，且食品安全与员工欠薪问题偶发 ；道德上，部分餐厅因客流不稳降低菜品质量，背离公益初心 。作为青年学生可以从以下方面，如开展普法宣传，解读《老年人权益保障法》与补贴政策；加入志愿服务，协助送餐、维护秩序；调研运营痛点，向社区建言搭建统一监管平台、统筹跨区补贴，助力服务提质增效等方面履行自己的社会责任，为家乡治理现代化贡献青春力量。",
+                position: { x: 30, y: 89 },
+                images: [
+     		{ src: "19.jpg", desc: "长沙银发族餐厅场景1" },
+      		{ src: "20.jpg", desc: "长沙银发族餐厅场景2" },
+     		{ src: "21.jpg", desc: "长沙银发族餐厅场景3" }
+            
+   		 ],
+                audio: "",
+                video: "5.mp4"
+            },
+            {
+                id: 8,
+                name: "天心阁",
+description:"天心阁位于湖南省长沙市天心区天心路17号，是长沙古城的标志，素有“潇湘古阁，秦汉名城”之美誉。其坐落于长沙城中心龙伏山颠，始建于明代，现存建筑为1983年原址重建，仿明清风格，主阁三层，与南北附阁以廊相连。阁下古城墙始建于西汉，现存251米，是我国古代城防工事的罕见实例，见证了长沙保卫战等历史事件，现为国家AAAA级景区与历史文化名楼。\n天心阁当今也存在着一些问题如木构建筑面临风化、虫害，古城墙受雨水侵蚀，需持续维护。周边高楼环绕导致其吸引力下降，设施陈旧、服务单一，与“网红长沙”的文旅需求脱节。另外提质改造中存在不当干预风险，且部分游客存在乱涂乱画等破坏行为。作为青年学生就需要遵守景区规定，劝阻不文明行为，参与古建清洁等志愿活动。制作短视频、手绘地图解读其历史，在校园开展科普分享。并通过调研记录保护痛点，向管理方提出“科技+文化”活化建议，助力遗产传承。",
+                position: { x: 34, y: 74 },
+                images: [
+     		{ src: "22.jpg", desc: "天心阁场景1" },
+             { src: "23.jpg", desc: "天心阁场景2" },
+             { src: "24.jpg", desc: "天心阁场景3" }
+   		 ],
+                audio: "",
+                video: "5.mp4"
+            },
+
+        ];
+
+        // DOM元素
+        const map = document.getElementById('map');
+        const infoBox = document.getElementById('infoBox');
+        const locationTitle = document.getElementById('locationTitle');
+        const locationContent = document.getElementById('locationContent');
+        const closeInfo = document.getElementById('closeInfo');
+        const zoomIn = document.getElementById('zoomIn');
+        const zoomOut = document.getElementById('zoomOut');
+        const resetMap = document.getElementById('resetMap');
+        const locationsList = document.getElementById('locationsList');
+
+        // 地图缩放比例
+        let scale = 1;
+        
+        // 初始化地图
+        function initMap() {
+            // 添加地点标记
+            locations.forEach(location => {
+                addMarker(location);
+            });
+            
+            // 生成地点列表
+            generateLocationsList();
+            
+            // 添加事件监听
+            closeInfo.addEventListener('click', () => {
+                infoBox.classList.add('hidden');
+            });
+            
+            zoomIn.addEventListener('click', () => {
+                scale = Math.min(scale + 0.1, 2);
+                updateMapScale();
+            });
+            
+            zoomOut.addEventListener('click', () => {
+                scale = Math.max(scale - 0.1, 0.5);
+                updateMapScale();
+            });
+            
+            resetMap.addEventListener('click', () => {
+                scale = 1;
+                updateMapScale();
+                map.style.transform = 'scale(1)';
+                infoBox.classList.add('hidden');
+            });
+            
+            // 实现地图拖拽功能
+            let isDragging = false;
+            let startX, startY;
+            let translateX = 0, translateY = 0;
+            let lastTranslateX = 0, lastTranslateY = 0;
+            
+            map.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX - lastTranslateX;
+                startY = e.clientY - lastTranslateY;
+                map.style.cursor = 'grabbing';
+            });
+            
+            map.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                e.preventDefault();
+                translateX = e.clientX - startX;
+                translateY = e.clientY - startY;
+                updateMapPosition();
+            });
+            
+            map.addEventListener('mouseup', () => {
+                isDragging = false;
+                lastTranslateX = translateX;
+                lastTranslateY = translateY;
+                map.style.cursor = 'move';
+            });
+            
+            map.addEventListener('mouseleave', () => {
+                isDragging = false;
+                lastTranslateX = translateX;
+                lastTranslateY = translateY;
+                map.style.cursor = 'move';
+            });
+            
+            // 触摸设备支持
+            map.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                startX = e.touches[0].clientX - lastTranslateX;
+                startY = e.touches[0].clientY - lastTranslateY;
+                map.style.cursor = 'grabbing';
+            });
+            
+            map.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                e.preventDefault();
+                translateX = e.touches[0].clientX - startX;
+                translateY = e.touches[0].clientY - startY;
+                updateMapPosition();
+            });
+            
+            map.addEventListener('touchend', () => {
+                isDragging = false;
+                lastTranslateX = translateX;
+                lastTranslateY = translateY;
+                map.style.cursor = 'move';
+            });
+            
+            function updateMapPosition() {
+                map.style.transform = `scale(${scale}) translate(${translateX / scale}px, ${translateY / scale}px)`;
+            }
+        }
+        
+        // 更新地图缩放
+        function updateMapScale() {
+            map.style.transform = `scale(${scale})`;
+        }
+        
+        // 添加地点标记
+        function addMarker(location) {
+            const marker = document.createElement('div');
+            marker.className = 'location-marker absolute w-6 h-6 bg-primary rounded-full flex items-center justify-center cursor-pointer z-10';
+            marker.style.left = `${location.position.x}%`;
+            marker.style.top = `${location.position.y}%`;
+            
+            //marker.innerHTML = '<img src="6.jpg" alt="地点标记" class="w-5 h-5">';
+            marker.innerHTML = '<i class="fa fa-map-marker text-white text-lg"></i>';//标记图
+            marker.title = location.name;
+            
+            // 点击标记显示信息
+            marker.addEventListener('click', (e) => {
+                e.stopPropagation(); // 防止触发地图拖拽
+                showLocationInfo(location, marker);
+            });
+            
+            map.appendChild(marker);
+        }
+        
+        // 显示地点信息
+        function showLocationInfo(location, marker) {
+            // 设置信息窗口位置
+            const markerRect = marker.getBoundingClientRect();
+            const mapRect = map.getBoundingClientRect();
+            
+            infoBox.style.left = `${markerRect.left - mapRect.left + markerRect.width/2}px`;
+            infoBox.style.top = `${markerRect.top - mapRect.top + markerRect.height}px`;
+            
+            // 填充信息内容
+            locationTitle.textContent = location.name;
+            locationContent.innerHTML = `
+                <div class="prose max-w-none">${location.description.replace(/\n/g, '<br>')}</div> 
+		<!--<p class="text-gray-700">${location.description}</p>-->
+                
+${location.images && location.images.length > 0 ? `
+  <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+    ${location.images.map((img, index) => `
+      <div class="group">
+        <img 
+          src="${img.src}" 
+          alt="${img.desc}" 
+          class="w-full h-48 object-cover rounded-md shadow-sm transition-transform duration-300 group-hover:scale-105 cursor-pointer hover:ring-2 hover:ring-primary"
+          onclick="openImageModal(${location.id}, ${index})"  <!-- 点击小图触发大图预览 -->
+        >
+        <p class="text-xs text-gray-500 mt-1 italic text-center">${img.desc}</p>
+      </div>
+    `).join('')}
+  </div>
+` : ''}
+                
+                ${location.audio ? `
+                    <div class="mt-3">
+                        <p class="text-sm font-medium text-gray-700 mb-1">
+                            <i class="fa fa-volume-up text-primary mr-1"></i>地点语音介绍
+                        </p>
+                        <audio controls class="w-full">
+                            <source src="${location.audio}" type="audio/mpeg">
+                            您的浏览器不支持音频播放
+                        </audio>
+                    </div>
+                ` : ''}
+                
+                ${location.video ? `
+                    <div class="mt-3">
+                        <p class="text-sm font-medium text-gray-700 mb-1">
+                            <i class="fa fa-film text-primary mr-1"></i>地点视频介绍
+                        </p>
+                        <video controls class="w-full h-48 object-cover rounded-md shadow-sm">
+                            <source src="${location.video}" type="video/mp4">
+                            您的浏览器不支持视频播放
+                        </video>
+                    </div>
+                ` : ''}
+            `;
+            
+            // 显示信息窗口
+            infoBox.classList.remove('hidden');
+        }
+        
+        // 生成地点列表
+        function generateLocationsList() {
+  locationsList.innerHTML = '';
+  
+  locations.forEach(location => {
+    const card = document.createElement('div');
+    card.className = 'border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow';
+    
+    // 确定要显示的图片路径和描述
+    let imgSrc = '';
+    let imgAlt = '';
+    // 优先级1：如果有image属性，用它
+    if (location.image) {
+      imgSrc = location.image;
+      imgAlt = location.imageDesc || location.name;
+    } 
+    // 优先级2：如果没有image，但有images数组且不为空，用第一张图
+    else if (location.images && location.images.length > 0) {
+      imgSrc = location.images[0].src;
+      imgAlt = location.images[0].desc || location.name;
+    }
+    
+    card.innerHTML = `
+      <!-- 只有确定了图片路径，才显示图片区域 -->
+      ${imgSrc ? `
+        <div class="h-40 overflow-hidden">
+          <img src="${imgSrc}" 
+               alt="${imgAlt}" 
+               class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+        </div>
+      ` : ''}
+      
+      <div class="p-4">
+        <h3 class="font-bold text-lg text-dark">${location.name}</h3>
+        <p class="text-gray-600 text-sm mt-1 line-clamp-2">${location.description}</p>
+        <button class="mt-3 text-primary hover:text-primary/80 text-sm font-medium flex items-center" 
+                data-id="${location.id}">
+          <i class="fa fa-map-marker mr-1"></i> 在地图上查看
+        </button>
+      </div>
+    `;
+                
+                locationsList.appendChild(card);
+                
+                // 添加点击事件
+                card.querySelector('button').addEventListener('click', () => {
+                    // 找到对应的标记并触发点击
+                    const marker = map.querySelector(`.location-marker[title="${location.name}"]`);
+                    if (marker) {
+                        marker.click();
+                        
+                        // 滚动到地图
+                        map.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            });
+        }
+        
+        // 点击地图空白处关闭信息窗口
+        map.addEventListener('click', () => {
+            infoBox.classList.add('hidden');
+        });
+        
+        // 页面加载完成后初始化地图
+        window.addEventListener('load', initMap);
+
+// 全局变量：记录当前预览的图片信息
+let currentLocationId = null;
+let currentImageIndex = null;
+
+// 打开大图模态框
+function openImageModal(locationId, imageIndex) {
+  // 记录当前图片的位置信息
+  currentLocationId = locationId;
+  currentImageIndex = imageIndex;
+  
+  // 找到对应的地点数据
+  const location = locations.find(item => item.id === locationId);
+  if (!location) return;
+  
+  // 获取当前图片信息
+  const currentImage = location.images[imageIndex];
+  if (!currentImage) return;
+  
+  // 更新模态框内容
+  document.getElementById('modalImage').src = currentImage.src;
+  document.getElementById('modalImageDesc').textContent = currentImage.desc;
+  
+  // 显示模态框
+  document.getElementById('imageModal').classList.remove('hidden');
+}
+
+// 关闭模态框
+document.getElementById('closeModal').addEventListener('click', () => {
+  document.getElementById('imageModal').classList.add('hidden');
+});
+
+// 点击模态框背景关闭
+document.getElementById('imageModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('imageModal')) {
+    document.getElementById('imageModal').classList.add('hidden');
+  }
+});
+
+// 切换到上一张图片
+document.getElementById('prevImage').addEventListener('click', () => {
+  if (currentLocationId === null || currentImageIndex === null) return;
+  
+  const location = locations.find(item => item.id === currentLocationId);
+  if (!location) return;
+  
+  // 计算上一张索引（循环切换）
+  currentImageIndex = (currentImageIndex - 1 + location.images.length) % location.images.length;
+  const prevImage = location.images[currentImageIndex];
+  
+  // 更新图片
+  document.getElementById('modalImage').src = prevImage.src;
+  document.getElementById('modalImageDesc').textContent = prevImage.desc;
+});
+
+// 切换到下一张图片
+document.getElementById('nextImage').addEventListener('click', () => {
+  if (currentLocationId === null || currentImageIndex === null) return;
+  
+  const location = locations.find(item => item.id === currentLocationId);
+  if (!location) return;
+  
+  // 计算下一张索引（循环切换）
+  currentImageIndex = (currentImageIndex + 1) % location.images.length;
+  const nextImage = location.images[currentImageIndex];
+  
+  // 更新图片
+  document.getElementById('modalImage').src = nextImage.src;
+  document.getElementById('modalImageDesc').textContent = nextImage.desc;
+});
+
+// 支持键盘操作（左右箭头切换，ESC关闭）
+document.addEventListener('keydown', (e) => {
+  if (!document.getElementById('imageModal').classList.contains('hidden')) {
+    if (e.key === 'Escape') {
+      document.getElementById('imageModal').classList.add('hidden');
+    } else if (e.key === 'ArrowLeft') {
+      document.getElementById('prevImage').click();
+    } else if (e.key === 'ArrowRight') {
+      document.getElementById('nextImage').click();
+    }
+  }
+});
+    </script>
+</body>
+</html>
