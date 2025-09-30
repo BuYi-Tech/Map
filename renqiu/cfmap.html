@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任丘：一半非遗烟火，一半千年土夯</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome图标 -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
+
+
+
+    <script>
+        // 配置Tailwind自定义颜色
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5F9EA0',   // 石家庄主色调-深蓝色
+                        secondary: '#10B981',
+                        accent: '#F59E0B',
+                        dark: '#1F2937',
+                    },
+                    fontFamily: {
+                        greatvibes: ['"Great Vibes"', 'cursive'], //艺术字
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .map-container {
+                background-image: url('rq.jpg'); /* 可替换为裕华区实际地图*/ 
+                background-size: cover;
+                background-position: center;
+		        background-repeat: no-repeat;
+                position: relative;
+            }  
+             
+            /*.map-container {
+    background-image: url('bd1.jpg'); /* 保持原图片路径 
+    background-size: contain; /* 核心：图片完整显示，保持比例（大图缩小、小图放大） */
+    /*background-position: center;  图片居中显示 */
+     /*background-repeat: no-repeat; 不重复平铺 
+    position: relative;
+    min-height: 800px; /* 可选：避免图片过小时容器高度塌陷，可自定义数值（如800px） */
+   /* height: auto;  容器高度随背景图自适应，去掉固定高度束缚 */
+    /* max-width: 1600px; width: 100%; 占父容器的 90% */
+    /* 或固定宽度：width: 1400px; */
+    /* 或响应式：max-width: 1600px; width: 100%;（最大1600px，小屏幕自适应） */
+    /* margin: 0 auto; 可选：让容器在父元素中居中 
+}*/
+
+            .location-marker {
+                transition: all 0.3s ease;
+            }
+            .location-marker:hover {
+                transform: scale(1.2);
+            }
+            .info-box {
+                transform-origin: top center;
+                animation: fadeIn 0.3s ease forwards;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: scale(0.9); }
+                to { opacity: 1; transform: scale(1); }
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <header class="bg-primary text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <h1 class="text-[clamp(2rem,5vw,3rem)] font-bold flex items-center font-greatvibes">
+                <!--<i class="fa fa-map-marker mr-3"></i>标记-->
+                <img src="111.jpg" alt="自定义标记图标" class="ml-4 mr-3 w-40 h-28">
+                任丘：一半非遗烟火，一半千年土夯 
+            </h1>
+                    <!--<div class="flex flex-wrap gap-2">
+                    <span class="px-2 py-1 bg-white/10 rounded-full text-xl backdrop-blur-sm">文明</span>
+                    <span class="px-2 py-1 bg-white/10 rounded-full text-xl backdrop-blur-sm">实力</span>
+                    <span class="px-2 py-1 bg-white/10 rounded-full text-xl backdrop-blur-sm">和谐</span>-->
+                </div>
+            <p class="text-blue-100 mt-1">      </p>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+            <!-- 地图控制区 -->
+            <div class="p-4 bg-gray-50 border-b flex flex-wrap gap-2 justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <button id="zoomIn" class="bg-primary hover:bg-primary/90 text-white p-2 rounded-full transition-all">
+                        <i class="fa fa-search-plus"></i>
+                    </button>
+                    <button id="zoomOut" class="bg-primary hover:bg-primary/90 text-white p-2 rounded-full transition-all">
+                        <i class="fa fa-search-minus"></i>
+                    </button>
+                    <button id="resetMap" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1.5 rounded-md transition-all text-sm">
+                        <i class="fa fa-refresh mr-1"></i>重置视图
+                    </button>
+                </div>
+                <div class="text-sm text-gray-600">
+                    <span class="font-medium"></span>雄安东望，油城花香 —— 任丘
+                </div>
+            </div>
+            
+            <!-- 地图容器 -->
+            <div id="map" class="map-container w-full h-[800px] cursor-move">
+                <!-- 地点标记 - 会通过JS动态添加  地图大小-->
+            </div>
+            
+            <!-- 信息窗口 - 默认隐藏 -->
+            <div id="infoBox" class="info-box hidden absolute bg-white rounded-lg shadow-xl p-4 max-w-md z-50 border border-gray-200">
+                <div class="flex justify-between items-start mb-3">
+                    <h3 id="locationTitle" class="text-xl font-bold text-dark"></h3>
+                    <button id="closeInfo" class="text-gray-500 hover:text-gray-700 transition-colors">
+                        <i class="fa fa-times text-lg"></i>
+                    </button>
+                </div>
+                
+                <div id="locationContent" class="space-y-4">
+                    <!-- 内容会通过JS动态填充 -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- 地点列表 -->
+        <div class="mt-8 bg-white rounded-xl shadow-md p-6">
+            <h2 class="text-xl font-bold text-dark mb-4 flex items-center">
+                <i class="fa fa-list-ul mr-2 text-primary"></i>任丘地点列表
+            </h2>
+            <div id="locationsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- 地点列表会通过JS动态生成 -->
+            </div>
+        </div>
+    </main>
+
+<!-- 图片预览模态框 -->
+<div id="imageModal" class="fixed inset-0 bg-black/90 flex items-center justify-center z-50 hidden">
+  <!-- 关闭按钮 -->
+  <button id="closeModal" class="absolute top-6 right-6 text-white text-3xl hover:text-gray-300 transition-colors">
+    <i class="fa fa-times"></i>
+  </button>
+  <!-- 左右切换按钮 -->
+  <button id="prevImage" class="absolute left-4 top-1/2 -translate-y-1/2 text-white text-4xl hover:text-gray-300 transition-colors">
+    <i class="fa fa-chevron-left"></i>
+  </button>
+  <button id="nextImage" class="absolute right-4 top-1/2 -translate-y-1/2 text-white text-4xl hover:text-gray-300 transition-colors">
+    <i class="fa fa-chevron-right"></i>
+  </button>
+  <!-- 大图显示区域 -->
+  <img id="modalImage" src="" alt="大图预览" class="max-w-[90%] max-h-[80vh] object-contain">
+  <!-- 图片描述 -->
+  <p id="modalImageDesc" class="absolute bottom-6 left-0 right-0 text-center text-white text-lg"></p>
+</div>
+
+    <footer class="bg-primary text-white mt-12 py-6">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy;  淀畔油都 | 千年任丘</p>
+        </div>
+    </footer>
+
+    <script>
+        // 石家庄裕华区地点数据
+        const locations = [
+            {
+                id: 1,
+                name: "任丘市人民法院新华法庭",
+description:"体现的法治精神与实践\n法治精神：深刻践行公平正义、定分止争的核心法治精神。通过“庭所联调”机制将矛盾化解在诉讼前端，既避免了司法资源浪费，又以非对抗方式修复社会关系，让公平正义以更高效、更温暖的方式实现。\n法治实践：积极践行新时代“枫桥经验”，与任南分局北站派出所等3家单位签订《矛盾纠纷联动联调机制》，构建多元解纷平台。法官主动下沉一线，参与派出所调解案件，通过释法明理将法律逻辑与邻里情理结合，实现“抓前端、治未病”的治理目标。",
+                position: { x: 42, y: 9 },
+                images: [
+     		 { src: "1.jpg", desc: "任丘市人民法院新华法庭场景" }
+   		 ],
+                audio: "",
+                video: ""
+            },
+           {
+                id: 2,
+                name: "任丘市烈士陵园",
+description:"任丘市烈士陵园位于任丘市区西北的小北关村北，始建于一九五六年七月，占地面积7895平方米。整个陵园由塔、碑、堂、林组成，园内花草繁茂、松柏成荫。陵园坐北朝南，一条宽阔的甬路纵贯南北。进大门左手边是著名的牛氏三杰纪念塔，塔内矗立着牛氏三杰纪念碑；塔的北面是王者兰烈士墓；进大门的右手边高耸着著名的十二烈士纪念碑；向北依次是二十六烈士墓、冀中军区军政干校政治部主任刘文华烈士之墓、三十烈士纪念碑和晋察冀冀中军区回民支队队长白振武烈士墓；陵园的最东侧有新迁入的李竹希、黄虎臣等烈士之墓共十个。甬路的尽头是革命烈士纪念堂，进入纪念堂首先映入眼帘的是革命烈士纪念墙，上面记录了任丘所有烈士的名字，其次是堂内摆放的马宝库、苏艺林等六名烈士的骨灰及生平的标识牌，纪念堂的左侧有牛氏三杰雕像及主要事迹展示牌，纪念堂的右侧墙上有边隆基、王者兰、戴培元三位烈士的主要事迹展示牌。 任丘市在抗日、解放、建国后的革命战争中，牺牲的有记载的革命烈士共2059名。他们出生入死、前仆后继，用鲜血和生命谱写了可歌可泣的篇章。往事悠悠、岁月峥嵘，革命先烈的功绩震古烁今，英名永垂青史，冀中人民世代铭记、永志不忘，革命先烈浩气长存。 为了加强对陵园的管理，1990年9月市政府批准成立了烈士陵园管理室，配备了专职人员，并且政府会拨专款进行修缮。1991年10月被任丘市人民政府授予：全市重点烈士纪念建筑物保护单位。1996年12月被沧州市爱国主义教育指导委员会命名为：沧州市级爱国主义教育基地。 自从成立烈士陵园管理室以来，该管理室充分发挥陵园的作用，每年清明节都要组织全市中小学生、各单位及社会各界团体代表来陵园进行祭扫活动；9月30日会进行隆重的烈士纪念日公祭活动；邀请老红军、老八路讲革命历史，进行爱国主义教育；动员青年、学生到陵园举行入队、入团、入党宣誓等等。每年共接待参观、祭扫人员达30000多人次。",
+                position: { x: 95, y: 35 },
+                images: [
+     		 { src: "2.jpg", desc: "任丘市烈士陵园场景1" },
+{ src: "3.jpg", desc: "任丘市烈士陵园场景2" },
+   		 ],
+                audio: "",
+                video: "1.mp4"
+            }, 
+            {
+                id: 3,
+                name: "任丘市图书馆",
+                //description:"",
+description:"任丘图书馆是河北省任丘市唯一的公共图书馆，现址位于昆仑南道西侧，建筑面积6014平方米，设有少儿借阅室、电子阅览室等14个功能区和500余个阅览座席，馆藏纸质图书11万册、报刊200余种，践行“读者至上”服务宗旨并提供免费借阅服务。\n任丘市图书馆以“读者至上、服务第一”为宗旨，通过普惠性服务、浸润式活动、社会化联动三大实践路径，将“文明”这一抽象价值理念，转化为市民可感、可及、可参与的日常场景，成为城市文明的重要载体与传播阵地。\n“文明”的核心是对人的尊重与关怀。任丘市图书馆以无差别、人性化的服务，打破群体壁垒，让每一位市民都能平等享受文化权益，彰显文明的包容性。\n破除服务门槛：在免费开放基础上，推出残障读者免押金办卡服务，设立专题图书架并联合残联发放康复手册，还为特教学校送去盲文图书并设立流动图书点，用精准服务保障特殊群体的阅读权利。\n延伸服务触角：依托流动图书车，常态化开展“送书下乡、进校园、进社区、进军营”活动，每年对乡镇图书室和农家书屋开展40余次业务辅导，让偏远地区的群众也能享受“零距离”的阅读服务，弥合城乡文化差距。\n打造便捷体验：馆内配备自助借还机、电子书借阅机等现代设备，同时通过微信公众号提供“掌上阅读”“红色故事绘”等线上服务，在元旦、春节等节点推出线上答题、猜灯谜等活动，让阅读突破时空限制，融入市民日常生活。",
+                position: { x: 4, y: 19 },
+                images: [
+     		 { src: "4.jpg", desc: "任丘市图书馆场景" }
+   		 ],
+                audio: "",
+                video: "2.mp4"
+            },
+            {
+                id: 4,
+                name: "任丘经济开发区",
+description:"任丘经济开发区以“产业升级为核、创新生态为基”，通过传统产业焕新、新兴动能培育、创新要素聚合三大实践路径，将“创新”从抽象理念转化为企业车间的技术突破、产业链条的迭代升级与区域发展的生动图景，成为驱动高质量发展的核心引擎。\n技术攻坚破壁垒：让创新转化为传统产业的“升级密码”\n开发区锚定传统产业转型痛点，以技术创新推动“老树发新芽”，让创新成为企业突破瓶颈、提质增效的日常实践。\n石化产业向“高”向“绿”转型：作为区域龙头的华北石化公司，以持续技术攻关推动产业从“燃料型”向“材料型”跨越。通过自主研发实现聚丙烯高熔纤维料量产，该材料广泛应用于医疗卫生、过滤材料等高端领域，填补了区域高性能化工原料的空白。同时，加速推进20万吨/年二氧化碳捕集利用、10万吨/年生物航煤等绿色项目，将“双碳”目标转化为具体技术实践，让传统能源产业在创新中拥抱绿色未来。\n制造产业向“智”向“精”升级：开发区内企业以智能化改造破解生产瓶颈。某智能装备企业研发的自动化焊接生产线，将传统脚手架碗扣生产从“四五人配合”缩减至“一人操作”，既降低人工成本与误差率，又提升产品质量，还能根据韩国、印度等海外客户的电压与自动化需求提供定制服务，让“中国制造”通过创新获得国际认可。河北珠峰大江三轮摩托车等企业则通过引入全自动流水组装线、精密检测设备，实现年产能20万辆的规模化生产，推动交通设备产业向高端化迈进。",
+                position: { x: 22, y: 88 },
+                images: [
+     		 { src: "5.jpg", desc: "任丘经济开发区场景1" },
+             { src: "6.jpg", desc: "任丘经济开发区场景2" }  
+   		 ],
+                audio: "",
+                video: "3.mp4"
+            },
+            {
+                id: 5,
+                name: "任丘市博物馆",
+description:"任丘市博物馆自2017年9月开馆后，系统展示当地从仰韶文化时期至明清时期的历史脉络。截至2023年，馆藏文物总量达681件/套，其中国家一级文物3件/套、二级文物11件/套。博物馆通过陈列展览、教育课程和文物保护工作，年均接待观众超2.1万人次，成为展示任丘历史文化的重要窗口。采用'历史+科技'展陈模式，年均举办2个固定陈列展。2022年推出金器主题数字化展览，2023年开设博闻任丘系列课程，组织学龄前儿童开展文物认知活动。截至2020年累计开展社教活动30次，2021年接待学生团体进行历史文化认知教育。",
+                position: { x: 4, y: 24 },
+                images: [
+     		{ src: "7.jpg", desc: "任丘市博物馆场景1" },
+            { src: "8.jpg", desc: "任丘市博物馆场景2" },
+   		 ],
+                audio: "",
+                video: "4.mp4"
+            },
+
+
+        ];
+
+        // DOM元素
+        const map = document.getElementById('map');
+        const infoBox = document.getElementById('infoBox');
+        const locationTitle = document.getElementById('locationTitle');
+        const locationContent = document.getElementById('locationContent');
+        const closeInfo = document.getElementById('closeInfo');
+        const zoomIn = document.getElementById('zoomIn');
+        const zoomOut = document.getElementById('zoomOut');
+        const resetMap = document.getElementById('resetMap');
+        const locationsList = document.getElementById('locationsList');
+
+        // 地图缩放比例
+        let scale = 1;
+        
+        // 初始化地图
+        function initMap() {
+            // 添加地点标记
+            locations.forEach(location => {
+                addMarker(location);
+            });
+            
+            // 生成地点列表
+            generateLocationsList();
+            
+            // 添加事件监听
+            closeInfo.addEventListener('click', () => {
+                infoBox.classList.add('hidden');
+            });
+            
+            zoomIn.addEventListener('click', () => {
+                scale = Math.min(scale + 0.1, 2);
+                updateMapScale();
+            });
+            
+            zoomOut.addEventListener('click', () => {
+                scale = Math.max(scale - 0.1, 0.5);
+                updateMapScale();
+            });
+            
+            resetMap.addEventListener('click', () => {
+                scale = 1;
+                updateMapScale();
+                map.style.transform = 'scale(1)';
+                infoBox.classList.add('hidden');
+            });
+            
+            // 实现地图拖拽功能
+            let isDragging = false;
+            let startX, startY;
+            let translateX = 0, translateY = 0;
+            let lastTranslateX = 0, lastTranslateY = 0;
+            
+            map.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX - lastTranslateX;
+                startY = e.clientY - lastTranslateY;
+                map.style.cursor = 'grabbing';
+            });
+            
+            map.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                e.preventDefault();
+                translateX = e.clientX - startX;
+                translateY = e.clientY - startY;
+                updateMapPosition();
+            });
+            
+            map.addEventListener('mouseup', () => {
+                isDragging = false;
+                lastTranslateX = translateX;
+                lastTranslateY = translateY;
+                map.style.cursor = 'move';
+            });
+            
+            map.addEventListener('mouseleave', () => {
+                isDragging = false;
+                lastTranslateX = translateX;
+                lastTranslateY = translateY;
+                map.style.cursor = 'move';
+            });
+            
+            // 触摸设备支持
+            map.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                startX = e.touches[0].clientX - lastTranslateX;
+                startY = e.touches[0].clientY - lastTranslateY;
+                map.style.cursor = 'grabbing';
+            });
+            
+            map.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                e.preventDefault();
+                translateX = e.touches[0].clientX - startX;
+                translateY = e.touches[0].clientY - startY;
+                updateMapPosition();
+            });
+            
+            map.addEventListener('touchend', () => {
+                isDragging = false;
+                lastTranslateX = translateX;
+                lastTranslateY = translateY;
+                map.style.cursor = 'move';
+            });
+            
+            function updateMapPosition() {
+                map.style.transform = `scale(${scale}) translate(${translateX / scale}px, ${translateY / scale}px)`;
+            }
+        }
+        
+        // 更新地图缩放
+        function updateMapScale() {
+            map.style.transform = `scale(${scale})`;
+        }
+        
+        // 添加地点标记
+        function addMarker(location) {
+            const marker = document.createElement('div');
+            marker.className = 'location-marker absolute w-6 h-6 bg-primary rounded-full flex items-center justify-center cursor-pointer z-10';
+            marker.style.left = `${location.position.x}%`;
+            marker.style.top = `${location.position.y}%`;
+            
+            //marker.innerHTML = '<img src="6.jpg" alt="地点标记" class="w-5 h-5">';
+            marker.innerHTML = '<i class="fa fa-map-marker text-white text-lg"></i>';//标记图
+            marker.title = location.name;
+            
+            // 点击标记显示信息
+            marker.addEventListener('click', (e) => {
+                e.stopPropagation(); // 防止触发地图拖拽
+                showLocationInfo(location, marker);
+            });
+            
+            map.appendChild(marker);
+        }
+        
+        // 显示地点信息
+        function showLocationInfo(location, marker) {
+            // 设置信息窗口位置
+            const markerRect = marker.getBoundingClientRect();
+            const mapRect = map.getBoundingClientRect();
+            
+            infoBox.style.left = `${markerRect.left - mapRect.left + markerRect.width/2}px`;
+            infoBox.style.top = `${markerRect.top - mapRect.top + markerRect.height}px`;
+            
+            // 填充信息内容
+            locationTitle.textContent = location.name;
+            locationContent.innerHTML = `
+                <div class="prose max-w-none">${location.description.replace(/\n/g, '<br>')}</div> 
+		<!--<p class="text-gray-700">${location.description}</p>-->
+                
+${location.images && location.images.length > 0 ? `
+  <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+    ${location.images.map((img, index) => `
+      <div class="group">
+        <img 
+          src="${img.src}" 
+          alt="${img.desc}" 
+          class="w-full h-48 object-cover rounded-md shadow-sm transition-transform duration-300 group-hover:scale-105 cursor-pointer hover:ring-2 hover:ring-primary"
+          onclick="openImageModal(${location.id}, ${index})"  <!-- 点击小图触发大图预览 -->
+        >
+        <p class="text-xs text-gray-500 mt-1 italic text-center">${img.desc}</p>
+      </div>
+    `).join('')}
+  </div>
+` : ''}
+                
+                ${location.audio ? `
+                    <div class="mt-3">
+                        <p class="text-sm font-medium text-gray-700 mb-1">
+                            <i class="fa fa-volume-up text-primary mr-1"></i>地点语音介绍
+                        </p>
+                        <audio controls class="w-full">
+                            <source src="${location.audio}" type="audio/mpeg">
+                            您的浏览器不支持音频播放
+                        </audio>
+                    </div>
+                ` : ''}
+                
+                ${location.video ? `
+                    <div class="mt-3">
+                        <p class="text-sm font-medium text-gray-700 mb-1">
+                            <i class="fa fa-film text-primary mr-1"></i>地点视频介绍
+                        </p>
+                        <video controls class="w-full h-48 object-cover rounded-md shadow-sm">
+                            <source src="${location.video}" type="video/mp4">
+                            您的浏览器不支持视频播放
+                        </video>
+                    </div>
+                ` : ''}
+            `;
+            
+            // 显示信息窗口
+            infoBox.classList.remove('hidden');
+        }
+        
+        // 生成地点列表
+        function generateLocationsList() {
+  locationsList.innerHTML = '';
+  
+  locations.forEach(location => {
+    const card = document.createElement('div');
+    card.className = 'border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow';
+    
+    // 确定要显示的图片路径和描述
+    let imgSrc = '';
+    let imgAlt = '';
+    // 优先级1：如果有image属性，用它
+    if (location.image) {
+      imgSrc = location.image;
+      imgAlt = location.imageDesc || location.name;
+    } 
+    // 优先级2：如果没有image，但有images数组且不为空，用第一张图
+    else if (location.images && location.images.length > 0) {
+      imgSrc = location.images[0].src;
+      imgAlt = location.images[0].desc || location.name;
+    }
+    
+    card.innerHTML = `
+      <!-- 只有确定了图片路径，才显示图片区域 -->
+      ${imgSrc ? `
+        <div class="h-40 overflow-hidden">
+          <img src="${imgSrc}" 
+               alt="${imgAlt}" 
+               class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+        </div>
+      ` : ''}
+      
+      <div class="p-4">
+        <h3 class="font-bold text-lg text-dark">${location.name}</h3>
+        <p class="text-gray-600 text-sm mt-1 line-clamp-2">${location.description}</p>
+        <button class="mt-3 text-primary hover:text-primary/80 text-sm font-medium flex items-center" 
+                data-id="${location.id}">
+          <i class="fa fa-map-marker mr-1"></i> 在地图上查看
+        </button>
+      </div>
+    `;
+                
+                locationsList.appendChild(card);
+                
+                // 添加点击事件
+                card.querySelector('button').addEventListener('click', () => {
+                    // 找到对应的标记并触发点击
+                    const marker = map.querySelector(`.location-marker[title="${location.name}"]`);
+                    if (marker) {
+                        marker.click();
+                        
+                        // 滚动到地图
+                        map.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            });
+        }
+        
+        // 点击地图空白处关闭信息窗口
+        map.addEventListener('click', () => {
+            infoBox.classList.add('hidden');
+        });
+        
+        // 页面加载完成后初始化地图
+        window.addEventListener('load', initMap);
+
+// 全局变量：记录当前预览的图片信息
+let currentLocationId = null;
+let currentImageIndex = null;
+
+// 打开大图模态框
+function openImageModal(locationId, imageIndex) {
+  // 记录当前图片的位置信息
+  currentLocationId = locationId;
+  currentImageIndex = imageIndex;
+  
+  // 找到对应的地点数据
+  const location = locations.find(item => item.id === locationId);
+  if (!location) return;
+  
+  // 获取当前图片信息
+  const currentImage = location.images[imageIndex];
+  if (!currentImage) return;
+  
+  // 更新模态框内容
+  document.getElementById('modalImage').src = currentImage.src;
+  document.getElementById('modalImageDesc').textContent = currentImage.desc;
+  
+  // 显示模态框
+  document.getElementById('imageModal').classList.remove('hidden');
+}
+
+// 关闭模态框
+document.getElementById('closeModal').addEventListener('click', () => {
+  document.getElementById('imageModal').classList.add('hidden');
+});
+
+// 点击模态框背景关闭
+document.getElementById('imageModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('imageModal')) {
+    document.getElementById('imageModal').classList.add('hidden');
+  }
+});
+
+// 切换到上一张图片
+document.getElementById('prevImage').addEventListener('click', () => {
+  if (currentLocationId === null || currentImageIndex === null) return;
+  
+  const location = locations.find(item => item.id === currentLocationId);
+  if (!location) return;
+  
+  // 计算上一张索引（循环切换）
+  currentImageIndex = (currentImageIndex - 1 + location.images.length) % location.images.length;
+  const prevImage = location.images[currentImageIndex];
+  
+  // 更新图片
+  document.getElementById('modalImage').src = prevImage.src;
+  document.getElementById('modalImageDesc').textContent = prevImage.desc;
+});
+
+// 切换到下一张图片
+document.getElementById('nextImage').addEventListener('click', () => {
+  if (currentLocationId === null || currentImageIndex === null) return;
+  
+  const location = locations.find(item => item.id === currentLocationId);
+  if (!location) return;
+  
+  // 计算下一张索引（循环切换）
+  currentImageIndex = (currentImageIndex + 1) % location.images.length;
+  const nextImage = location.images[currentImageIndex];
+  
+  // 更新图片
+  document.getElementById('modalImage').src = nextImage.src;
+  document.getElementById('modalImageDesc').textContent = nextImage.desc;
+});
+
+// 支持键盘操作（左右箭头切换，ESC关闭）
+document.addEventListener('keydown', (e) => {
+  if (!document.getElementById('imageModal').classList.contains('hidden')) {
+    if (e.key === 'Escape') {
+      document.getElementById('imageModal').classList.add('hidden');
+    } else if (e.key === 'ArrowLeft') {
+      document.getElementById('prevImage').click();
+    } else if (e.key === 'ArrowRight') {
+      document.getElementById('nextImage').click();
+    }
+  }
+});
+    </script>
+</body>
+</html>
