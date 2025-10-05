@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>秘境藏千年，新声入松阳 </title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome图标 -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
+
+
+
+    <script>
+        // 配置Tailwind自定义颜色
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4A90E2',   // 石家庄主色调-深蓝色
+                        secondary: '#10B981',
+                        accent: '#F59E0B',
+                        dark: '#1F2937',
+                    },
+                    fontFamily: {
+                        greatvibes: ['"Great Vibes"', 'cursive'], //艺术字
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .map-container {
+                background-image: url('sy.jpg'); /* 可替换为裕华区实际地图*/ 
+                background-size: cover;
+                background-position: center;
+		        background-repeat: no-repeat;
+                position: relative;
+            }  
+             
+            /*.map-container {
+    background-image: url('bd1.jpg'); /* 保持原图片路径 
+    background-size: contain; /* 核心：图片完整显示，保持比例（大图缩小、小图放大） */
+    /*background-position: center;  图片居中显示 */
+     /*background-repeat: no-repeat; 不重复平铺 
+    position: relative;
+    min-height: 800px; /* 可选：避免图片过小时容器高度塌陷，可自定义数值（如800px） */
+   /* height: auto;  容器高度随背景图自适应，去掉固定高度束缚 */
+    /* max-width: 1600px; width: 100%; 占父容器的 90% */
+    /* 或固定宽度：width: 1400px; */
+    /* 或响应式：max-width: 1600px; width: 100%;（最大1600px，小屏幕自适应） */
+    /* margin: 0 auto; 可选：让容器在父元素中居中 
+}*/
+
+            .location-marker {
+                transition: all 0.3s ease;
+            }
+            .location-marker:hover {
+                transform: scale(1.2);
+            }
+            .info-box {
+                transform-origin: top center;
+                animation: fadeIn 0.3s ease forwards;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: scale(0.9); }
+                to { opacity: 1; transform: scale(1); }
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <header class="bg-primary text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <h1 class="text-[clamp(2rem,5vw,3rem)] font-bold flex items-center font-greatvibes">
+                <!--<i class="fa fa-map-marker mr-3"></i>标记-->
+                <img src="111.jpg" alt="自定义标记图标" class="ml-4 mr-3 w-40 h-28">
+                秘境藏千年，新声入松阳  
+            </h1>
+                    <!--<div class="flex flex-wrap gap-2">
+                    <span class="px-2 py-1 bg-white/10 rounded-full text-xl backdrop-blur-sm">文明</span>
+                    <span class="px-2 py-1 bg-white/10 rounded-full text-xl backdrop-blur-sm">实力</span>
+                    <span class="px-2 py-1 bg-white/10 rounded-full text-xl backdrop-blur-sm">和谐</span>-->
+                </div>
+            <p class="text-blue-100 mt-1">      </p>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+            <!-- 地图控制区 -->
+            <div class="p-4 bg-gray-50 border-b flex flex-wrap gap-2 justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <button id="zoomIn" class="bg-primary hover:bg-primary/90 text-white p-2 rounded-full transition-all">
+                        <i class="fa fa-search-plus"></i>
+                    </button>
+                    <button id="zoomOut" class="bg-primary hover:bg-primary/90 text-white p-2 rounded-full transition-all">
+                        <i class="fa fa-search-minus"></i>
+                    </button>
+                    <button id="resetMap" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1.5 rounded-md transition-all text-sm">
+                        <i class="fa fa-refresh mr-1"></i>重置视图
+                    </button>
+                </div>
+                <div class="text-sm text-gray-600">
+                    <span class="font-medium"></span>半城山水半城茶，一村一落一诗画
+                </div>
+            </div>
+            
+            <!-- 地图容器 -->
+            <div id="map" class="map-container w-full h-[800px] cursor-move">
+                <!-- 地点标记 - 会通过JS动态添加  地图大小-->
+            </div>
+            
+            <!-- 信息窗口 - 默认隐藏 -->
+            <div id="infoBox" class="info-box hidden absolute bg-white rounded-lg shadow-xl p-4 max-w-md z-50 border border-gray-200">
+                <div class="flex justify-between items-start mb-3">
+                    <h3 id="locationTitle" class="text-xl font-bold text-dark"></h3>
+                    <button id="closeInfo" class="text-gray-500 hover:text-gray-700 transition-colors">
+                        <i class="fa fa-times text-lg"></i>
+                    </button>
+                </div>
+                
+                <div id="locationContent" class="space-y-4">
+                    <!-- 内容会通过JS动态填充 -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- 地点列表 -->
+        <div class="mt-8 bg-white rounded-xl shadow-md p-6">
+            <h2 class="text-xl font-bold text-dark mb-4 flex items-center">
+                <i class="fa fa-list-ul mr-2 text-primary"></i>松阳地点列表
+            </h2>
+            <div id="locationsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- 地点列表会通过JS动态生成 -->
+            </div>
+        </div>
+    </main>
+
+<!-- 图片预览模态框 -->
+<div id="imageModal" class="fixed inset-0 bg-black/90 flex items-center justify-center z-50 hidden">
+  <!-- 关闭按钮 -->
+  <button id="closeModal" class="absolute top-6 right-6 text-white text-3xl hover:text-gray-300 transition-colors">
+    <i class="fa fa-times"></i>
+  </button>
+  <!-- 左右切换按钮 -->
+  <button id="prevImage" class="absolute left-4 top-1/2 -translate-y-1/2 text-white text-4xl hover:text-gray-300 transition-colors">
+    <i class="fa fa-chevron-left"></i>
+  </button>
+  <button id="nextImage" class="absolute right-4 top-1/2 -translate-y-1/2 text-white text-4xl hover:text-gray-300 transition-colors">
+    <i class="fa fa-chevron-right"></i>
+  </button>
+  <!-- 大图显示区域 -->
+  <img id="modalImage" src="" alt="大图预览" class="max-w-[90%] max-h-[80vh] object-contain">
+  <!-- 图片描述 -->
+  <p id="modalImageDesc" class="absolute bottom-6 left-0 right-0 text-center text-white text-lg"></p>
+</div>
+
+    <footer class="bg-primary text-white mt-12 py-6">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy;  秘境藏千年 | 新声入松阳</p>
+        </div>
+    </footer>
+
+    <script>
+        // 石家庄裕华区地点数据
+        const locations = [
+            {
+                id: 1,
+                name: "江滨公园",
+description:"傍晚6点，夕阳像一块熔化的红糖，慢慢淌进松阴溪。江滨公园的跑道是松阳人偷偷藏起来的“时间减速带”——风把柳枝吹成慢动作，把广场舞跳成MV，把遛狗的大叔拍成电影男主。你什么都不用带，带上一双会发呆的眼睛就好。",
+                position: { x: 13, y: 21 },
+                images: [
+     		 { src: "1.jpg", desc: "江滨公园场景1" },
+             { src: "2.jpg", desc: "江滨公园场景2" },
+             { src: "3.jpg", desc: "江滨公园场景3" },
+
+   		 ],
+                audio: "",
+                video: "1.mp4"
+            },
+           {
+                id: 2,
+                name: "独山",
+description:"独山，又名百仞山，以“其山孤峙，旁无连续”得名，山形如蟾蹲坐，是松阳的标志性景观。它属于丹霞地貌，东南崖陡，西北坡缓，峭壁天成，奇石穿云，有朝天洞、仙女脚印等自然奇观。山巅的蟾峰阁始建于北宋，2015年重修，登上阁楼可将松阳县城与田园风光尽收眼底。山下的松荫溪蜿蜒流淌，与独山相互映衬，构成绝美画卷。",
+                position: { x: 18, y: 47 },
+                images: [
+     		 { src: "4.jpg", desc: "独山场景1" },
+             { src: "5.jpg", desc: "独山场景1" },
+
+   		 ],
+                audio: "",
+                video: "2.mp4"
+            }, 
+            {
+                id: 3,
+                name: "松阳县非物质文化遗产馆",
+                //description:"",
+description:"松阳县非物质文化遗产馆：古建里的时光絮语\n当山岚掠过明清古街的青石板，明代万寿宫的木楼便接住了松阳千年的匠心絮语——这里是浙西南首个非遗馆，也是时光酿成的文化秘境。\n踩过吱呀作响的木楼板，仿佛听见岁月的足音与非遗的共鸣。竹篾在玻璃展柜里舒展着弧度，那是山中匠人指尖流转的光阴，每一缕纹路都藏着松庄溪畔的清风；剪纸作品晕染着烟火气，将畲族的银饰纹样、古村的马头墙影都凝在方寸纸上；木雕展区的百寿图隔扇门最是动人，百个寿字百种写法，全由匠人一刀刀刻进木头的肌理里。若恰逢午后，后半馆的戏台便会响起松阳高腔，《驻云飞》的曲牌随穿堂风漫开，与非遗小巷的彩绘相映，让传统在眼前活成了风景。",
+                position: { x: 7, y: 13 },
+                images: [
+     		 { src: "6.jpg", desc: "松阳县非物质文化遗产馆场景" }
+   		 ],
+                audio: "",
+                video: ""
+            },
+            {
+                id: 4,
+                name: "松阳县客运综合服务中心",
+description:"松阳县客运综合服务中心：山水间的启程与归期\n作为松阳的城市门户，这座枢纽藏着山水与人心的联结：南环路与迎宾大道的交汇处，它像一座温暖的驿站，迎送着每颗奔赴远方或归心似箭的灵魂。",
+                position: { x: 47, y: 87 },
+                images: [
+     		 { src: "7.jpg", desc: "松阳县客运综合服务中心场景" }
+   		 ],
+                audio: "",
+                video: ""
+            },
+            {
+                id: 5,
+                name: "松阳老街",
+description:"没人赶你，也没人讨好你。打铁铺的火星子蹦到石板路，裁缝店的粉笔还在画80年代的领口，刚出炉的麦饼烫得左手倒右手。老墙门上的“松阳”二字被雨水泡得发毛，却像给整条街加了一层柔焦滤镜。下午3点，光影从斗缝漏进来，猫在打盹，人在走神——快门“咔嚓”一声，时间被折成一张明信片。",
+                position: { x: 1, y: 11 },
+                images: [
+     		{ src: "8.jpg", desc: "松阳老街场景1" },
+            { src: "9.jpg", desc: "松阳老街场景2" },
+   		 ],
+                audio: "",
+                video: "5.mp4"
+            },
+             {
+                id: 6,
+                name: "双童山景区",
+description:"玻璃栈道悬在650米高空，脚下是千米深V峡谷，每走一步手机都自动弹出“是否开启飞行模式”。山顶的“天空之镜”把云翻过来给你当镜子，拍一张，朋友圈以为你在西藏。下山别坐缆车，去试“玻璃漂流”——360°回环+S型弯道，头巾一戴，秒变“峡谷DJ”，尖叫声自带电音。如果赶上雨后初霁，整条峡谷会升起“仙气”，无人机俯拍，直接出片《苍兰诀》番外",
+                position: { x: 94, y: 20 },
+                images: [
+     		{ src: "10.jpg", desc: "双童山景区场景1" },
+            { src: "11.jpg", desc: "双童山景区场景2" },
+            { src: "12.jpg", desc: "双童山景区场景3" },
+            { src: "13.jpg", desc: "双童山景区场景4" },
+            { src: "14.jpg", desc: "双童山景区场景5" },
+   		 ],
+                audio: "",
+                video: "6.mp4"
+            },
+
+        ];
+
+        // DOM元素
+        const map = document.getElementById('map');
+        const infoBox = document.getElementById('infoBox');
+        const locationTitle = document.getElementById('locationTitle');
+        const locationContent = document.getElementById('locationContent');
+        const closeInfo = document.getElementById('closeInfo');
+        const zoomIn = document.getElementById('zoomIn');
+        const zoomOut = document.getElementById('zoomOut');
+        const resetMap = document.getElementById('resetMap');
+        const locationsList = document.getElementById('locationsList');
+
+        // 地图缩放比例
+        let scale = 1;
+        
+        // 初始化地图
+        function initMap() {
+            // 添加地点标记
+            locations.forEach(location => {
+                addMarker(location);
+            });
+            
+            // 生成地点列表
+            generateLocationsList();
+            
+            // 添加事件监听
+            closeInfo.addEventListener('click', () => {
+                infoBox.classList.add('hidden');
+            });
+            
+            zoomIn.addEventListener('click', () => {
+                scale = Math.min(scale + 0.1, 2);
+                updateMapScale();
+            });
+            
+            zoomOut.addEventListener('click', () => {
+                scale = Math.max(scale - 0.1, 0.5);
+                updateMapScale();
+            });
+            
+            resetMap.addEventListener('click', () => {
+                scale = 1;
+                updateMapScale();
+                map.style.transform = 'scale(1)';
+                infoBox.classList.add('hidden');
+            });
+            
+            // 实现地图拖拽功能
+            let isDragging = false;
+            let startX, startY;
+            let translateX = 0, translateY = 0;
+            let lastTranslateX = 0, lastTranslateY = 0;
+            
+            map.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX - lastTranslateX;
+                startY = e.clientY - lastTranslateY;
+                map.style.cursor = 'grabbing';
+            });
+            
+            map.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                e.preventDefault();
+                translateX = e.clientX - startX;
+                translateY = e.clientY - startY;
+                updateMapPosition();
+            });
+            
+            map.addEventListener('mouseup', () => {
+                isDragging = false;
+                lastTranslateX = translateX;
+                lastTranslateY = translateY;
+                map.style.cursor = 'move';
+            });
+            
+            map.addEventListener('mouseleave', () => {
+                isDragging = false;
+                lastTranslateX = translateX;
+                lastTranslateY = translateY;
+                map.style.cursor = 'move';
+            });
+            
+            // 触摸设备支持
+            map.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                startX = e.touches[0].clientX - lastTranslateX;
+                startY = e.touches[0].clientY - lastTranslateY;
+                map.style.cursor = 'grabbing';
+            });
+            
+            map.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                e.preventDefault();
+                translateX = e.touches[0].clientX - startX;
+                translateY = e.touches[0].clientY - startY;
+                updateMapPosition();
+            });
+            
+            map.addEventListener('touchend', () => {
+                isDragging = false;
+                lastTranslateX = translateX;
+                lastTranslateY = translateY;
+                map.style.cursor = 'move';
+            });
+            
+            function updateMapPosition() {
+                map.style.transform = `scale(${scale}) translate(${translateX / scale}px, ${translateY / scale}px)`;
+            }
+        }
+        
+        // 更新地图缩放
+        function updateMapScale() {
+            map.style.transform = `scale(${scale})`;
+        }
+        
+        // 添加地点标记
+        function addMarker(location) {
+            const marker = document.createElement('div');
+            marker.className = 'location-marker absolute w-6 h-6 bg-primary rounded-full flex items-center justify-center cursor-pointer z-10';
+            marker.style.left = `${location.position.x}%`;
+            marker.style.top = `${location.position.y}%`;
+            
+            //marker.innerHTML = '<img src="6.jpg" alt="地点标记" class="w-5 h-5">';
+            marker.innerHTML = '<i class="fa fa-map-marker text-white text-lg"></i>';//标记图
+            marker.title = location.name;
+            
+            // 点击标记显示信息
+            marker.addEventListener('click', (e) => {
+                e.stopPropagation(); // 防止触发地图拖拽
+                showLocationInfo(location, marker);
+            });
+            
+            map.appendChild(marker);
+        }
+        
+        // 显示地点信息
+        function showLocationInfo(location, marker) {
+            // 设置信息窗口位置
+            const markerRect = marker.getBoundingClientRect();
+            const mapRect = map.getBoundingClientRect();
+            
+            infoBox.style.left = `${markerRect.left - mapRect.left + markerRect.width/2}px`;
+            infoBox.style.top = `${markerRect.top - mapRect.top + markerRect.height}px`;
+            
+            // 填充信息内容
+            locationTitle.textContent = location.name;
+            locationContent.innerHTML = `
+                <div class="prose max-w-none">${location.description.replace(/\n/g, '<br>')}</div> 
+		<!--<p class="text-gray-700">${location.description}</p>-->
+                
+${location.images && location.images.length > 0 ? `
+  <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+    ${location.images.map((img, index) => `
+      <div class="group">
+        <img 
+          src="${img.src}" 
+          alt="${img.desc}" 
+          class="w-full h-48 object-cover rounded-md shadow-sm transition-transform duration-300 group-hover:scale-105 cursor-pointer hover:ring-2 hover:ring-primary"
+          onclick="openImageModal(${location.id}, ${index})"  <!-- 点击小图触发大图预览 -->
+        >
+        <p class="text-xs text-gray-500 mt-1 italic text-center">${img.desc}</p>
+      </div>
+    `).join('')}
+  </div>
+` : ''}
+                
+                ${location.audio ? `
+                    <div class="mt-3">
+                        <p class="text-sm font-medium text-gray-700 mb-1">
+                            <i class="fa fa-volume-up text-primary mr-1"></i>地点语音介绍
+                        </p>
+                        <audio controls class="w-full">
+                            <source src="${location.audio}" type="audio/mpeg">
+                            您的浏览器不支持音频播放
+                        </audio>
+                    </div>
+                ` : ''}
+                
+                ${location.video ? `
+                    <div class="mt-3">
+                        <p class="text-sm font-medium text-gray-700 mb-1">
+                            <i class="fa fa-film text-primary mr-1"></i>地点视频介绍
+                        </p>
+                        <video controls class="w-full h-48 object-cover rounded-md shadow-sm">
+                            <source src="${location.video}" type="video/mp4">
+                            您的浏览器不支持视频播放
+                        </video>
+                    </div>
+                ` : ''}
+            `;
+            
+            // 显示信息窗口
+            infoBox.classList.remove('hidden');
+        }
+        
+        // 生成地点列表
+        function generateLocationsList() {
+  locationsList.innerHTML = '';
+  
+  locations.forEach(location => {
+    const card = document.createElement('div');
+    card.className = 'border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow';
+    
+    // 确定要显示的图片路径和描述
+    let imgSrc = '';
+    let imgAlt = '';
+    // 优先级1：如果有image属性，用它
+    if (location.image) {
+      imgSrc = location.image;
+      imgAlt = location.imageDesc || location.name;
+    } 
+    // 优先级2：如果没有image，但有images数组且不为空，用第一张图
+    else if (location.images && location.images.length > 0) {
+      imgSrc = location.images[0].src;
+      imgAlt = location.images[0].desc || location.name;
+    }
+    
+    card.innerHTML = `
+      <!-- 只有确定了图片路径，才显示图片区域 -->
+      ${imgSrc ? `
+        <div class="h-40 overflow-hidden">
+          <img src="${imgSrc}" 
+               alt="${imgAlt}" 
+               class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+        </div>
+      ` : ''}
+      
+      <div class="p-4">
+        <h3 class="font-bold text-lg text-dark">${location.name}</h3>
+        <p class="text-gray-600 text-sm mt-1 line-clamp-2">${location.description}</p>
+        <button class="mt-3 text-primary hover:text-primary/80 text-sm font-medium flex items-center" 
+                data-id="${location.id}">
+          <i class="fa fa-map-marker mr-1"></i> 在地图上查看
+        </button>
+      </div>
+    `;
+                
+                locationsList.appendChild(card);
+                
+                // 添加点击事件
+                card.querySelector('button').addEventListener('click', () => {
+                    // 找到对应的标记并触发点击
+                    const marker = map.querySelector(`.location-marker[title="${location.name}"]`);
+                    if (marker) {
+                        marker.click();
+                        
+                        // 滚动到地图
+                        map.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            });
+        }
+        
+        // 点击地图空白处关闭信息窗口
+        map.addEventListener('click', () => {
+            infoBox.classList.add('hidden');
+        });
+        
+        // 页面加载完成后初始化地图
+        window.addEventListener('load', initMap);
+
+// 全局变量：记录当前预览的图片信息
+let currentLocationId = null;
+let currentImageIndex = null;
+
+// 打开大图模态框
+function openImageModal(locationId, imageIndex) {
+  // 记录当前图片的位置信息
+  currentLocationId = locationId;
+  currentImageIndex = imageIndex;
+  
+  // 找到对应的地点数据
+  const location = locations.find(item => item.id === locationId);
+  if (!location) return;
+  
+  // 获取当前图片信息
+  const currentImage = location.images[imageIndex];
+  if (!currentImage) return;
+  
+  // 更新模态框内容
+  document.getElementById('modalImage').src = currentImage.src;
+  document.getElementById('modalImageDesc').textContent = currentImage.desc;
+  
+  // 显示模态框
+  document.getElementById('imageModal').classList.remove('hidden');
+}
+
+// 关闭模态框
+document.getElementById('closeModal').addEventListener('click', () => {
+  document.getElementById('imageModal').classList.add('hidden');
+});
+
+// 点击模态框背景关闭
+document.getElementById('imageModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('imageModal')) {
+    document.getElementById('imageModal').classList.add('hidden');
+  }
+});
+
+// 切换到上一张图片
+document.getElementById('prevImage').addEventListener('click', () => {
+  if (currentLocationId === null || currentImageIndex === null) return;
+  
+  const location = locations.find(item => item.id === currentLocationId);
+  if (!location) return;
+  
+  // 计算上一张索引（循环切换）
+  currentImageIndex = (currentImageIndex - 1 + location.images.length) % location.images.length;
+  const prevImage = location.images[currentImageIndex];
+  
+  // 更新图片
+  document.getElementById('modalImage').src = prevImage.src;
+  document.getElementById('modalImageDesc').textContent = prevImage.desc;
+});
+
+// 切换到下一张图片
+document.getElementById('nextImage').addEventListener('click', () => {
+  if (currentLocationId === null || currentImageIndex === null) return;
+  
+  const location = locations.find(item => item.id === currentLocationId);
+  if (!location) return;
+  
+  // 计算下一张索引（循环切换）
+  currentImageIndex = (currentImageIndex + 1) % location.images.length;
+  const nextImage = location.images[currentImageIndex];
+  
+  // 更新图片
+  document.getElementById('modalImage').src = nextImage.src;
+  document.getElementById('modalImageDesc').textContent = nextImage.desc;
+});
+
+// 支持键盘操作（左右箭头切换，ESC关闭）
+document.addEventListener('keydown', (e) => {
+  if (!document.getElementById('imageModal').classList.contains('hidden')) {
+    if (e.key === 'Escape') {
+      document.getElementById('imageModal').classList.add('hidden');
+    } else if (e.key === 'ArrowLeft') {
+      document.getElementById('prevImage').click();
+    } else if (e.key === 'ArrowRight') {
+      document.getElementById('nextImage').click();
+    }
+  }
+});
+    </script>
+</body>
+</html>
