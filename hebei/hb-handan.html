@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>一景一山水，一步一典故</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome图标 -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 百度地图API（替换成你的AK） -->
+    <script type="text/javascript" src="https://api.map.baidu.com/api?v=1.0&type=webgl&ak=ErMVgmh7QgYX3naRmzTsy0viDvOAeSJ9"></script>
+    
+    <script>
+        // 配置Tailwind自定义颜色
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#10B981', // 主色调-深蓝色
+                        secondary: '#10B981',
+                        accent: '#F59E0B',
+                        dark: '#1F2937',
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .map-container {
+                position: relative; /* 为信息窗提供定位参考 */
+                overflow: hidden; /* 防止地图瓦片溢出 */
+                height: 600px; /* 确保地图容器有高度 */
+            }
+            .location-marker {
+                transition: all 0.3s ease;
+            }
+            .location-marker:hover {
+                transform: scale(1.2);
+            }
+            .info-box {
+                position: absolute; 
+                z-index: 1000; /* 确保在地图上层 */
+                transform-origin: top center;
+                animation: fadeIn 0.3s ease forwards;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: scale(0.9); }
+                to { opacity: 1; transform: scale(1); }
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <header class="bg-primary text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold flex items-center">
+                 <!--<i class="fa fa-map-marker mr-3"></i>标记-->
+                <img src="111.jpg" alt="自定义标记图标" class="ml-4 mr-3 w-40 h-28">一景一山水，一步一典故
+            </h1>
+            <p class="text-blue-100 mt-1"> </p>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+            <!-- 地图控制区 -->
+            <div class="p-4 bg-gray-50 border-b flex flex-wrap gap-2 justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <button id="zoomIn" class="bg-primary hover:bg-primary/90 text-white p-2 rounded-full transition-all">
+                        <i class="fa fa-search-plus"></i>
+                    </button>
+                    <button id="zoomOut" class="bg-primary hover:bg-primary/90 text-white p-2 rounded-full transition-all">
+                        <i class="fa fa-search-minus"></i>
+                    </button>
+                    <button id="resetMap" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1.5 rounded-md transition-all text-sm">
+                        <i class="fa fa-refresh mr-1"></i>重置视图
+                    </button>
+                </div>
+                <div class="text-sm text-gray-600">
+                    <span class="font-medium"></span>成语织进草编，太极融入日常
+                </div>
+            </div>
+            
+            <!-- 地图容器 -->
+            <div id="map" class="map-container w-full cursor-move"></div>
+            
+            <!-- 信息窗口 -->
+            <div id="infoBox" class="info-box hidden absolute bg-white rounded-lg shadow-xl p-4 max-w-md z-50 border border-gray-200">
+                <div class="flex justify-between items-start mb-3">
+                    <h3 id="locationTitle" class="text-xl font-bold text-dark"></h3>
+                    <button id="closeInfo" class="text-gray-500 hover:text-gray-700 transition-colors">
+                        <i class="fa fa-times text-lg"></i>
+                    </button>
+                </div>
+                <div id="locationContent" class="space-y-4">
+                    <!-- 内容会通过JS动态填充 -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- 地点列表 -->
+        <div class="mt-8 bg-white rounded-xl shadow-md p-6">
+            <h2 class="text-xl font-bold text-dark mb-4 flex items-center">
+                <i class="fa fa-list-ul mr-2 text-primary"></i>邯郸地点列表
+            </h2>
+            <div id="locationsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- 地点列表会通过JS动态生成 -->
+            </div>
+        </div>
+    
+        <div id="imageModal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" style="z-index: 2000;">
+        <div class="relative w-full max-w-4xl">
+            <!-- 关闭按钮 -->
+            <button id="closeModal" class="absolute top-2 right-2 text-white text-2xl hover:text-gray-300">
+                &times;
+            </button>
+            <!-- 上一张按钮 -->
+            <button id="prevImage" class="absolute left-2 top-1/2 -translate-y-1/2 text-white text-3xl hover:text-gray-300">
+                &larr;
+            </button>
+            <!-- 下一张按钮 -->
+            <button id="nextImage" class="absolute right-2 top-1/2 -translate-y-1/2 text-white text-3xl hover:text-gray-300">
+                &rarr;
+            </button>
+            <!-- 预览图片 -->
+            <img id="modalImage" src="" alt="预览图" class="w-full max-h-[80vh] object-contain">
+            <!-- 图片描述 -->
+            <p id="modalImageDesc" class="text-white text-center mt-2"></p>
+        </div>
+    </div>
+    
+    </main>
+
+    <footer class="bg-primary text-white mt-12 py-6">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 成语之都 | 太极之乡 </p>
+        </div>
+    </footer>
+
+    <script>
+        // 1. 地点数据
+        const locations = [
+            {
+                id: 1,
+                name: "赵王城遗址",
+                description: "赵王城遗址是目前保存最完整、规模最大的东周时期王城遗址。遗址由西城、东城、北城三个小城组成，平面呈品字形。西城近方形，边长1420米，四面城墙保存完整，残高3—8米，内有5座大夯土台。公园和邯郸市区有一定距离，可以驱车前往，停车免费，参观免费。",
+                position:  [114.435209,36.578074],
+                 images: [
+     		 { src: "1.jpg", desc: "赵王城遗址场景1" },
+             { src: "2.jpg", desc: "赵王城遗址场景2" },
+             { src: "3.jpg", desc: "赵王城遗址场景3" },
+
+
+   		 ],
+                audio: "",
+                video: "1.mp4"
+            },
+            {
+                id: 2,
+                name: "回车巷",
+                description: "回车巷位于邯郸市区串城街南段，全长约75米，宽1.8米，相传战国时赵上卿蔺相如曾在此处为大将廉颇回车让路，故名蔺相如回车巷。 明代万历十二年(1584年)邯郸知县萧察根据民众“心碑”，在墙壁上镶嵌“蔺相如回车巷”六个石刻大字，1981年进行维修并建石碑亭，立石碑述其事,碑亭高4.4米，宽2.3米。，碑文记载了蔺相如以国家利益为重，多次为廉颇回车让路，争取将相和好的历史故事。",
+                position: [114.491636,36.613092],
+                images: [
+     		 { src: "4.jpg", desc: "回车巷场景1" },
+             { src: "5.jpg", desc: "回车巷场景2" },
+        
+
+   		 ],
+                audio: "",
+                video: "2.mp4"
+            },
+            {
+                id: 3,
+                name: "邯郸行宫",
+                description: "邯郸行宫，又称慈禧行宫，位于河北省邯郸市丛台区邯郸道历史文化街区内（原邯郸专署院内北侧），始建于清光绪二十七年（1901年），是一座典型的中国北方复式四合院风格的建筑。邯郸行宫原有南北两院，前院接待朝拜、奏请、议事，后院房前植有蜡梅，环境幽静。现存的邯郸行宫面积约1500平方米，呈长方形布局，坐北朝南，可见“前朝后寝”的宫室建筑布局。邯郸行宫前院为“朝”，有一大殿及两配殿。正殿居中，坐北朝南，面阔三间13米，进深五间9米，高8.7米，符合皇家定制。东西配殿面宽三间进深二间，后墙中央留有一门与后院贯通。后院现存一座二层西楼，院内还有多处小房。1995年10月6日，邯郸行宫被邯郸市人民政府公布为邯郸市第一批市级文物保护单位。",
+                position: [114.492562,36.615794],
+                 images: [
+     		 { src: "6.jpg", desc: "邯郸行宫场景1" },
+             { src: "7.jpg", desc: "邯郸行宫场景2" }
+
+   		 ],
+                audio: "",
+                video: "3.mp4"
+            },
+            {
+                id: 4,
+                name: "丛台公园",
+                description: "丛台公园，位于邯郸市中心的中华大街中段，总面积24万平方米，于1953年建成开放，是以赵文化遗址武灵丛台为中心开辟而成的一座大型公园。丛台公园内有武灵馆、据胜亭、望诸榭、七贤祠及工农兵塑像，亭台楼榭错落布局、主次分明，是集古迹游览、花卉欣赏、儿童游乐、动物展出于一体的大型综合性休闲娱乐场所。",
+                position: [114.497365,36.622059],
+images: [
+     		 { src: "8.jpg", desc: "丛台公园场景1" },
+             { src: "9.jpg", desc: "丛台公园场景2" }
+             
+
+   		 ],
+                audio: "",
+                video: "4.mp4"
+            },
+            
+
+                        {
+                id: 5,
+                name: "邯郸学步典故",
+                description: "相传在两千年前，燕国寿陵有一位少年，认为自己走路的姿势太丑。他听得说赵国邯郸人走路姿势很美。便到了邯郸，仔细观察赵国都城内来来往往的人，学习他们的步伐、步法、摆手的姿势。可是总是学得不象。他很苦恼，于是他坐在城北的小桥边思索。竟然忘掉自己原先怎样走路，不过却没有学会赵国人走路的样子。最终是爬着回到燕国的",
+                position: [114.496419,36.626592],
+images: [
+     		 { src: "10.jpg", desc: "邯郸学步场景1" },
+             { src: "11.jpg", desc: "邯郸学步场景2" },
+              { src: "12.jpg", desc: "邯郸学步场景3" },
+
+   		 ],
+                audio: "",
+                video: "5.mp4"
+            },
+        ];
+
+        // 全局变量
+        let baiduMap; 
+        let markerList = []; 
+
+        // DOM元素
+        const mapContainer = document.getElementById('map');
+        const infoBox = document.getElementById('infoBox');
+        const locationTitle = document.getElementById('locationTitle');
+        const locationContent = document.getElementById('locationContent');
+        const closeInfo = document.getElementById('closeInfo');
+        const zoomInBtn = document.getElementById('zoomIn');
+        const zoomOutBtn = document.getElementById('zoomOut');
+        const resetMapBtn = document.getElementById('resetMap');
+        const locationsList = document.getElementById('locationsList');
+
+        // 2. 初始化地图
+        window.onload = function() {
+            initBaiduMap();
+        };
+
+        // 3. 初始化百度地图
+        function initBaiduMap() {
+            const pingzhuangCenter = new BMapGL.Point(114.50,36.61); // 赤峰平庄的经纬度
+            baiduMap = new BMapGL.Map("map");
+            baiduMap.centerAndZoom(pingzhuangCenter, 14.5);// 缩放级别可根据需要调整（3-19，越大越详细）
+            baiduMap.enableScrollWheelZoom(true);
+            baiduMap.enableDragging(true);
+
+            // 地图加载完成后执行
+            baiduMap.addEventListener('tilesloaded', function() {
+                console.log("百度地图加载完成");
+                addBaiduMapMarkers();
+                generateLocationsList();
+                bindControlEvents();
+            });
+        }
+
+        // 4. 绑定控制按钮事件
+        function bindControlEvents() {
+            zoomInBtn.addEventListener('click', () => baiduMap.zoomIn());
+            zoomOutBtn.addEventListener('click', () => baiduMap.zoomOut());
+            resetMapBtn.addEventListener('click', () => {
+                const pingzhuangCenter = new BMapGL.Point(114.50,36.61);//重置改这里
+                baiduMap.centerAndZoom(pingzhuangCenter, 14.5);
+                infoBox.classList.add('hidden');
+            });
+           closeInfo.addEventListener('click', () => {
+  console.log('尝试关闭信息窗，当前类名：', infoBox.className);
+  infoBox.classList.add('hidden');
+   infoBox.style.display = 'none'; 
+  console.log('关闭后类名：', infoBox.className);
+});
+             baiduMap.addEventListener('click', (e) => {
+        // 判断点击目标是否在 infoBox 内部
+        if (!infoBox.contains(e.target)) {
+            infoBox.classList.add('hidden');
+        }
+    });
+        }
+
+        // 5. 添加地图标记
+        function addBaiduMapMarkers() {
+            locations.forEach(location => {
+                const point = new BMapGL.Point(location.position[0], location.position[1]);
+                const markerIcon = new BMapGL.Icon(
+                    `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="%231E40AF"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`,
+                    new BMapGL.Size(32, 32)
+                );
+                const marker = new BMapGL.Marker(point, { icon: markerIcon });
+                marker.setTitle(location.name);
+                marker.locationData = location;
+
+                // 标记点击事件
+                marker.addEventListener('click', () => {
+                    console.log("标记点击触发：", location.name);
+                    showLocationInfo(location, marker);
+                });
+
+                baiduMap.addOverlay(marker);
+                markerList.push(marker);
+            });
+        }
+
+        // 6. 显示信息窗（核心修复：语法错误+样式冲突）
+        function showLocationInfo(location,marker) {
+        // 1. 转换经纬度为像素坐标（使用传入的 marker）
+    const pixel = baiduMap.pointToOverlayPixel(marker.getPosition()); // 现在 marker 已定义
+    
+    // 2. 计算信息窗位置（后续逻辑不变）
+    const infoBoxWidth = infoBox.offsetWidth || 300;
+    const left = pixel.x - infoBoxWidth / 2;
+    const top = pixel.y + 32;
+    infoBox.style.left = `${Math.max(10, Math.min(left, mapContainer.offsetWidth - infoBoxWidth - 10))}px`;
+    infoBox.style.top = `${Math.max(10, top)}px`;
+
+    // 3. 填充内容、显示信息窗（后续逻辑不变）
+
+            // 2. 填充内容（确保内容可见）
+  locationTitle.textContent = location.name;
+            locationContent.innerHTML = `
+                <div class="prose max-w-none">${location.description.replace(/\n/g, '<br>')}</div> 
+		<!--<p class="text-gray-700">${location.description}</p>-->
+                
+${location.images && location.images.length > 0 ? `
+  <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+    ${location.images.map((img, index) => `
+      <div class="group">
+        <img 
+          src="${img.src}" 
+          alt="${img.desc}" 
+          class="w-full h-48 object-cover rounded-md shadow-sm transition-transform duration-300 group-hover:scale-105 cursor-pointer hover:ring-2 hover:ring-primary"
+          onclick="openImageModal(${location.id}, ${index})"  <!-- 点击小图触发大图预览 -->
+        >
+        <p class="text-xs text-gray-500 mt-1 italic text-center">${img.desc}</p>
+      </div>
+    `).join('')}
+  </div>
+` : ''}
+                
+                ${location.audio ? `
+                    <div class="mt-3">
+                        <p class="text-sm font-medium text-gray-700 mb-1">
+                            <i class="fa fa-volume-up text-primary mr-1"></i>地点语音介绍
+                        </p>
+                        <audio controls class="w-full">
+                            <source src="${location.audio}" type="audio/mpeg">
+                            您的浏览器不支持音频播放
+                        </audio>
+                    </div>
+                ` : ''}
+                
+                ${location.video ? `
+                    <div class="mt-3">
+                        <p class="text-sm font-medium text-gray-700 mb-1">
+                            <i class="fa fa-film text-primary mr-1"></i>地点视频介绍
+                        </p>
+                        <video controls class="w-full h-48 object-cover rounded-md shadow-sm">
+                            <source src="${location.video}" type="video/mp4">
+                            您的浏览器不支持视频播放
+                        </video>
+                    </div>
+                ` : ''}
+            `;
+
+            // 3. 强制显示（修复语法错误）
+            console.log('尝试显示信息窗');
+            console.log('移除前的类名：', infoBox.className);
+            infoBox.classList.remove('hidden');
+            console.log('移除后的类名：', infoBox.className);
+             infoBox.style.display = 'block'; //补充分号，修复语法错误
+            infoBox.style.opacity = '1';
+            infoBox.style.visibility = 'visible';
+            infoBox.style.zIndex = '1000';
+        }
+
+        // 7. 生成地点列表
+        function generateLocationsList() {
+            locationsList.innerHTML = '';
+            locations.forEach(location => {
+                const card = document.createElement('div');
+                card.className = 'border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow';
+                card.innerHTML = `
+                    <div class="h-40 overflow-hidden">
+                       <img 
+        src="${location.images && location.images.length > 0 
+            ? location.images[0].src  // 有 images 数组时，取第一张图
+            : location.image || 'https://picsum.photos/id/1015/600/400'}"  // 否则用单图或默认图
+        alt="${location.images && location.images.length > 0 
+            ? location.images[0].desc  // 有 images 数组时，取第一张图的描述
+            : location.imageDesc || location.name}"  // 否则用单图描述或地点名
+        class="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+    >
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg text-dark">${location.name}</h3>
+                        <p class="text-gray-600 text-sm mt-1 line-clamp-2">${location.description}</p>
+                        <button class="mt-3 text-primary hover:text-primary/80 text-sm font-medium flex items-center" 
+                                data-id="${location.id}">
+                            <i class="fa fa-map-marker mr-1"></i> 在地图上查看
+                        </button>
+                    </div>
+                `;
+                locationsList.appendChild(card);
+
+                // 列表点击事件
+card.querySelector('button').addEventListener('click', () => {
+    const targetMarker = markerList.find(marker => marker.locationData.id === location.id);
+    if (targetMarker) {
+        baiduMap.panTo(targetMarker.getPosition()); // 地图移动到标记位置
+        showLocationInfo(location, targetMarker);   // 直接调用显示信息窗的函数
+        mapContainer.scrollIntoView({ behavior: 'smooth', block: 'start' }); // 滚动到地图
+    }
+});
+            });
+        }
+    
+    // 全局变量：记录当前预览的图片信息
+let currentLocationId = null;
+let currentImageIndex = null;
+
+// 打开大图模态框
+function openImageModal(locationId, imageIndex) {
+  // 记录当前图片的位置信息
+  currentLocationId = locationId;
+  currentImageIndex = imageIndex;
+  
+  // 找到对应的地点数据
+  const location = locations.find(item => item.id === locationId);
+  if (!location) return;
+  
+  // 获取当前图片信息
+  const currentImage = location.images[imageIndex];
+  if (!currentImage) return;
+  
+  // 更新模态框内容
+  document.getElementById('modalImage').src = currentImage.src;
+  document.getElementById('modalImageDesc').textContent = currentImage.desc;
+  
+  // 显示模态框
+  document.getElementById('imageModal').classList.remove('hidden');
+}
+
+// 关闭模态框
+document.getElementById('closeModal').addEventListener('click', () => {
+  document.getElementById('imageModal').classList.add('hidden');
+});
+
+// 点击模态框背景关闭
+document.getElementById('imageModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('imageModal')) {
+    document.getElementById('imageModal').classList.add('hidden');
+  }
+});
+
+// 切换到上一张图片
+document.getElementById('prevImage').addEventListener('click', () => {
+  if (currentLocationId === null || currentImageIndex === null) return;
+  
+  const location = locations.find(item => item.id === currentLocationId);
+  if (!location) return;
+  
+  // 计算上一张索引（循环切换）
+  currentImageIndex = (currentImageIndex - 1 + location.images.length) % location.images.length;
+  const prevImage = location.images[currentImageIndex];
+  
+  // 更新图片
+  document.getElementById('modalImage').src = prevImage.src;
+  document.getElementById('modalImageDesc').textContent = prevImage.desc;
+});
+
+// 切换到下一张图片
+document.getElementById('nextImage').addEventListener('click', () => {
+  if (currentLocationId === null || currentImageIndex === null) return;
+  
+  const location = locations.find(item => item.id === currentLocationId);
+  if (!location) return;
+  
+  // 计算下一张索引（循环切换）
+  currentImageIndex = (currentImageIndex + 1) % location.images.length;
+  const nextImage = location.images[currentImageIndex];
+  
+  // 更新图片
+  document.getElementById('modalImage').src = nextImage.src;
+  document.getElementById('modalImageDesc').textContent = nextImage.desc;
+});
+
+// 支持键盘操作（左右箭头切换，ESC关闭）
+document.addEventListener('keydown', (e) => {
+  if (!document.getElementById('imageModal').classList.contains('hidden')) {
+    if (e.key === 'Escape') {
+      document.getElementById('imageModal').classList.add('hidden');
+    } else if (e.key === 'ArrowLeft') {
+      document.getElementById('prevImage').click();
+    } else if (e.key === 'ArrowRight') {
+      document.getElementById('nextImage').click();
+    }
+  }
+});
+    
+    
+    </script>
+</body>
+</html>
